@@ -42,22 +42,29 @@ process mapping {
   command += "samtools view -@ ${cpus} -bF256 ${out_prefix}.bam  > ${out_prefix}_primary.bam"
 }
 
-/*process model {
-  """
-  run_spp.R -c=${bam} -rf -out=${prefix}.params.out -savp=${prefix}.pdf -p=${cpus}
-  """
-}
+process model {
+  input:
+  bam from bams
 
-process peak {
+  output:
+  // stdout in peaks
+  file "${prefix}.params.out"
+
   script:
-  broad = { '--broad' if peak in broad_peaks else ''}
+  cpus = task.cpus
+  prefix = bam.name.baseName
   command = ""
-  command += "macs2 callpeak -t ${bam} -n ${prefix} --gsize hs -c ${chip_input} --nomodel --shiftsize=half_fragment_size ${broad}"
-  """
+  command += "run_spp.R -c=${bam} -rf -out=${prefix}.params.out -savp=${prefix}.pdf -p=${cpus}"
 }
 
-process wiggle {
-
-}*/
-
-bams.println { it }
+// process peak {
+//   script:
+//   broad = { '--broad' if peak in broad_peaks else ''}
+//   command = ""
+//   command += "macs2 callpeak -t ${bam} -n ${prefix} --gsize hs -c ${chip_input} --nomodel --shiftsize=half_fragment_size ${broad}"
+//   """
+// }
+//
+// process wiggle {
+//
+// }
