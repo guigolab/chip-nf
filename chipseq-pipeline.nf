@@ -39,7 +39,7 @@ process mapping {
 }
 return
 
-process model {
+/*process model {
   """
   run_spp.R -c=${bam} -rf -out=${prefix}.params.out -savp=${prefix}.pdf -p=${cpus}
   """
@@ -55,4 +55,4 @@ process peak {
 
 process wiggle {
 
-}
+}*/
