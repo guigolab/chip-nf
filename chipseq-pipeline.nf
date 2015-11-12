@@ -38,10 +38,9 @@ process mapping {
   command = ""
   command += "${cat} ${fastq} | gem-mapper -I ${index} -q offset-${quality} -T ${cpus} | pigz -p ${cpus} -c > ${out_prefix}.map.gz\n"
   command += "gt.filter -i ${out_prefix}.map.gz --max-levenshtein-error ${params.mismatches} -t ${cpus}| gt.filter --max-matches ${params.multimaps + 1} -t ${cpus} | pigz -p ${cpus} -c > ${out_prefix}.filter.map.gz\n"
-  command += "pigz -p ${cpus} -dc ${out_prefix}.filter.map.gz | gem-2-sam -T ${cpus} -I ${index} -q ${quality} -l --expect-single-end-reads | awk '${awk_str}' | samtools view -@ ${cpus} -Sb - | samtools sort -@ ${cpus} - ${out_prefix}\n"
+  command += "pigz -p ${cpus} -dc ${out_prefix}.filter.map.gz | gem-2-sam -T ${cpus} -I ${index} -q offset-${quality} -l --expect-single-end-reads | awk '${awk_str}' | samtools view -@ ${cpus} -Sb - | samtools sort -@ ${cpus} - ${out_prefix}\n"
   command += "samtools view -@ ${cpus} -bF256 ${out_prefix}.bam  > ${out_prefix}_primary.bam"
 }
-return
 
 /*process model {
   """
@@ -60,3 +59,5 @@ process peak {
 process wiggle {
 
 }*/
+
+bams.println { it }
