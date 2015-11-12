@@ -1,4 +1,4 @@
-genome = params.genome
+index = params.index
 fastqs = Channel.from(params.input)
 
 /*process index {
@@ -11,8 +11,21 @@ fastqs = Channel.from(params.input)
 }*/
 
 process mapping {
+  input:
+  file index
+  file fastq from fastqs
+
+  output:
+  file ${out_prefix}_primary.bam
+
   script:
-  cat = { 'zcat' if fastq }
+  cat = { 'zcat' if fastq.name.endsWith('.gz') }
+  fqpattern = ~"(.+)_[0-9]+_[ACGTN]+.fastq(.gz)?"
+  matcher = fastq.name =~ fqpattern
+  if (!matcher) {
+    exit 1, "Cannot match fastq name"
+  }
+  out_prefix = matcher.group(1)
   command = ""
   command += "${cat} ${fastq} | gem-mapper -I ${index} -q ${quality} -T ${cpus} | pigz -p ${cpus} -c ${_ctx.input} > ${_ctx.output|ext}.map.gz"
   command += "gt.filter -i ${map} --max-levenshtein-error ${_ctx.mism} -t ${cpus}| gt.filter --max-matches $((${_ctx.hits}+1)) -t ${cpus} | pigz -p ${cpus} -c > ${_ctx.output|ext}.filter.map.gz"
