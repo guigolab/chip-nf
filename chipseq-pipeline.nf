@@ -27,6 +27,7 @@ process mapping {
   script:
   cpus = task.cpus
   memory = task.memory
+  cat = fastq.name.endsWith('.gz') ? 'zcat' : 'cat'
   fqpattern = ~"(.+)_[0-9]+_[ACGTN]+.fastq(.gz)?"
   matcher = fastq.name =~ fqpattern
   if (!matcher) {
