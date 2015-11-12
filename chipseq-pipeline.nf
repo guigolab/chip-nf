@@ -2,7 +2,7 @@ params.mismatches = 2
 params.multimaps = 10
 
 index = params.index
-fastqs = Channel.from(params.input)
+fastqs = Channel.fromPath(params.input)
 
 /*process index {
   input:
@@ -29,14 +29,13 @@ process mapping {
     exit 1, "Cannot match fastq name"
   }
   out_prefix = matcher.group(1)
-  /*awk_str = 'BEGIN{OFS=FS=\"\\t\"}$0!~/^@/{split(\"1_2_8_32_64_128\",a,\"_\");for(i in a){if(and($2,a[i])>0){$2=xor($2,a[i])}}}{print}\'")'
+  awk_str = 'BEGIN{OFS=FS=\"\\t\"}$0!~/^@/{split(\"1_2_8_32_64_128\",a,\"_\");for(i in a){if(and($2,a[i])>0){$2=xor($2,a[i])}}}{print}\'")'
   command = ""
   command += "${cat} ${fastq} | gem-mapper -I ${index} -q ${quality} -T ${cpus} | pigz -p ${cpus} -c ${_ctx.input} > ${_ctx.output|ext}.map.gz"
   command += "gt.filter -i ${map} --max-levenshtein-error ${params.mismatches} -t ${cpus}| gt.filter --max-matches ${params.multimaps + 1} -t ${cpus} | pigz -p ${cpus} -c > ${_ctx.output|ext}.filter.map.gz"
   command += "pigz -p ${cpus} -dc ${filtered} | gem-2-sam -T ${cpus} -I ${index} -q ${quality} -l --expect-single-end-reads | awk '${awk_str}' | samtools view -@ ${cpus} -Sb - | samtools sort -@ ${cpus} - ${_ctx.output} > ${_ctx.output}"
   command += "samtools view -@ ${cpus} -bF256 ${bam}  > ${bam}_primary.bam"
-  println "${command}"*/
-  println out_prefix
+  println "${command}"
 }
 return
 
