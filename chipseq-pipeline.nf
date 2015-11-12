@@ -19,7 +19,7 @@ process mapping {
   file fastq from fastqs
 
   output:
-  file ${out_prefix}_primary.bam into bams
+  file "${out_prefix}_primary.bam" into bams
 
   script:
   cat = { fastq.name.endsWith('.gz') ? 'zcat' : 'cat' }
