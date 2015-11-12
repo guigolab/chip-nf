@@ -19,7 +19,7 @@ process mapping {
   file ${out_prefix}_primary.bam
 
   script:
-  cat = { 'zcat' if fastq.name.endsWith('.gz') }
+  cat = { fastq.name.endsWith('.gz') ? 'zcat' : 'cat' }
   fqpattern = ~"(.+)_[0-9]+_[ACGTN]+.fastq(.gz)?"
   matcher = fastq.name =~ fqpattern
   if (!matcher) {
