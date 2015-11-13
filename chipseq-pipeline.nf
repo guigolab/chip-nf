@@ -54,7 +54,7 @@ process model {
   cpus = task.cpus
   prefix = bam.baseName
   command = ""
-  command += "Rscript run_spp.R -c=${bam} -rf -out=${prefix}.params.out -savp=${prefix}.pdf -p=${cpus}\n"
+  command += "Rscript \$(which run_spp.R) -c=${bam} -rf -out=${prefix}.params.out -savp=${prefix}.pdf -p=${cpus}\n"
 }
 
 // process peak {
