@@ -28,7 +28,7 @@ process mapping {
   set prefix, file(fastq), quality from fastqs
 
   output:
-  set prefix, file("$prefix}_primary.bam") into bams
+  set prefix, file("${prefix}_primary.bam") into bams
 
   script:
   cpus = task.cpus
