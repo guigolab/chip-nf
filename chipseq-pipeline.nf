@@ -1,6 +1,13 @@
 params.mismatches = 2
 params.multimaps = 10
 
+broadPeaks = [
+  "H3K27me3",
+  "H3K36me3",
+  "H3K9me3",
+  "H3K4me1"
+]
+
 fastqPattern = ~"(.+)_[0-9]+_[ACGTN]+.fastq(.gz)?"
 
 chromSizes="/users/rg/projects/references/Genome/H.sapiens/hg19/hg19.chromsizes"
@@ -46,7 +53,7 @@ process mapping {
   command += "samtools view -@ ${cpus} -bF256 ${prefix}.bam  > ${prefix}_primary.bam"
 }
 
-(modelBams, wiggleBams) = bams.into(2)
+(modelBams, wiggleBams, peakCallBams, results) = bams.into(4)
 
 process model {
   input:
@@ -68,14 +75,19 @@ modelParams = modelParams.map { prefix, out ->
   [prefix, out, maxPeak]
 }
 
-// process peak {
-//   script:
-//   broad = { '--broad' if peak in broad_peaks else ''}
-//   command = ""
-//   command += "macs2 callpeak -t ${bam} -n ${prefix} --gsize hs -c ${chip_input} --nomodel --shiftsize=half_fragment_size ${broad}"
-//   """
-// }
-//
+process peakCall {
+  input:
+  set prefix, file(bam)bam from peakCallBams
+
+  output:
+  set file("${prefix}_peaks.xls"), file("${prefix}_summits.bed"), file("${prefix}_peaks.*Peak") into results
+
+  script:
+  broad = (peak in broad_peaks) ? '--broad' : ''
+  command = ""
+  command += "macs2 callpeak -t ${bam} -n ${prefix} --gsize hs -c ${chip_input} --nomodel --shiftsize=half_fragment_size ${broad}"
+}
+
 process wiggle {
 
   input:
@@ -83,12 +95,12 @@ process wiggle {
   set prefix, out, maxPeak from modelParams
 
   output:
-  set prefix, "${prefix}.bw" into wiggleOut
+  set prefix, "${prefix}.bw", maxPeak into results
 
   script:
   command = ""
-  command += "align2rawsignal -i=${bam} -s=${chromDir} -u=${genomeMapDir} -o=${prefix}.bedgraph -of=bg -v=${prefix}.align2rawsignal.log -l=${maxPeak-50}\n"
+  command += "align2rawsignal -i=${bam} -s=${chromDir} -u=${genomeMapDir} -o=${prefix}.bedgraph -of=bg -v=stdout -l=${maxPeak-50}\n"
   command += "bedGraphToBigWig ${prefix}.bedgraph ${chromSizes} ${prefix}.bw"
 }
 
-wiggleOut.println { it }
+results.println { it }
