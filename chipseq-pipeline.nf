@@ -1,6 +1,9 @@
 params.mismatches = 2
 params.multimaps = 10
 
+peak = null
+chipInput = null
+
 broadPeaks = [
   "H3K27me3",
   "H3K36me3",
@@ -57,7 +60,7 @@ process mapping {
 
 process model {
   input:
-  set prefix, bam from modelBams
+  set prefix, file(bam) from modelBams
 
   output:
   // stdout in peaks
@@ -78,22 +81,23 @@ modelParams = modelParams.map { prefix, out ->
 process peakCall {
   input:
   set prefix, file(bam) from peakCallBams
+  set prefix, out, maxPeak from modelParams.first()
 
   output:
-  set file("${prefix}_peaks.xls"), file("${prefix}_summits.bed"), file("${prefix}_peaks.*Peak") into results
+  set prefix, file("${prefix}_peaks.xls"), file("${prefix}_summits.bed"), file("${prefix}_peaks.*Peak") into results
 
   script:
   broad = (peak in broadPeaks) ? '--broad' : ''
   command = ""
-  command += "macs2 callpeak -t ${bam} -n ${prefix} --gsize hs --nomodel --shiftsize=half_fragment_size ${broad}"
-  command += chip_input ? '-c ${chip_input}' : ''
+  command += "macs2 callpeak -t ${bam} -n ${prefix} --gsize hs --nomodel --extsize=${maxPeak/2} ${broad}"
+  command += chipInput ? '-c ${chipInput}' : ''
 }
 
 process wiggle {
 
   input:
   set prefix, bam from wiggleBams
-  set prefix, out, maxPeak from modelParams
+  set prefix, out, maxPeak from modelParams.first()
 
   output:
   set prefix, "${prefix}.bw", maxPeak into results
