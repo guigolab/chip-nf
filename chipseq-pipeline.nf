@@ -58,7 +58,7 @@ process model {
 }
 
 model = model.map { prefix, out ->
-  maxPeak = out.text.split()[3].split(',')[0]
+  maxPeak = out.text.split()[2].split(',')[0]
   [prefix, out, maxPeak]
 }
 
