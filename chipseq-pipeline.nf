@@ -1,5 +1,6 @@
 params.mismatches = 2
 params.multimaps = 10
+params.dbFile = 'chipseq-pipeline.db'
 
 peak = null
 chipInput = null
@@ -10,6 +11,9 @@ broadPeaks = [
   "H3K9me3",
   "H3K4me1"
 ]
+
+pdb = file(params.dbFile)
+pdb.write('')
 
 fastqPattern = ~"(.+)_[0-9]+_[ACGTN]+.fastq(.gz)?"
 
