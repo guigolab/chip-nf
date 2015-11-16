@@ -3,6 +3,10 @@ params.multimaps = 10
 
 fastqPattern = ~"(.+)_[0-9]+_[ACGTN]+.fastq(.gz)?"
 
+chromSizes="/users/rg/projects/references/Genome/H.sapiens/hg19/hg19.chromsizes"
+chromDir="/users/rg/projects/ERC/chipseq-human/genome/chrs"
+genomeMapDir="/users/rg/projects/references/Genome/H.sapiens/hg19/globalmap_k20tok54"
+
 index = file(params.index)
 fastqs = Channel
 .fromPath(params.input).map {
@@ -42,13 +46,15 @@ process mapping {
   command += "samtools view -@ ${cpus} -bF256 ${prefix}.bam  > ${prefix}_primary.bam"
 }
 
+(modelBams, wigglerBams) = bams.into(2)
+
 process model {
   input:
-  set prefix, bam from bams
+  set prefix, bam from modelBams
 
   output:
   // stdout in peaks
-  set prefix, file("${prefix}.params.out") into model
+  set prefix, file("${prefix}.params.out") into modelParams
 
   script:
   cpus = task.cpus
@@ -57,12 +63,11 @@ process model {
   command += "Rscript \$(which run_spp.R) -c=${bam} -rf -out=${prefix}.params.out -savp=${prefix}.pdf -p=${cpus}\n"
 }
 
-model = model.map { prefix, out ->
+modelParams = modelParams.map { prefix, out ->
   maxPeak = out.text.split()[2].split(',')[0]
   [prefix, out, maxPeak]
 }
-
-model.println { it }
+ 
 // process peak {
 //   script:
 //   broad = { '--broad' if peak in broad_peaks else ''}
@@ -71,6 +76,19 @@ model.println { it }
 //   """
 // }
 //
-// process wiggle {
-//
-// }
+process wiggle {
+
+  input:
+  set prefix, bam from modelBams
+  set prefix, out, maxPeak from modelParams
+
+  output:
+  set prefix, "${prefix}.bw" into wiggleOut
+
+  script:
+  command = ""
+  command += "align2rawsignal -i=${bam} -s=${chromDir} -u=${genomeMapDir} -o=${prefix}.bedgraph -of=bg -v=${prefix}.align2rawsignal.log -l=${maxPeak-50}\n"
+  command += "bedGraphToBigWig ${prefix}.bedgraph ${chromSizes} ${prefix}.bw"
+}
+
+wiggleOut.println { it }
