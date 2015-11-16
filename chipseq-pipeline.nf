@@ -83,10 +83,10 @@ process peakCall {
   set file("${prefix}_peaks.xls"), file("${prefix}_summits.bed"), file("${prefix}_peaks.*Peak") into results
 
   script:
-  broad = (peak in broad_peaks) ? '--broad' : ''
+  broad = (peak in broadPeaks) ? '--broad' : ''
   command = ""
   command += "macs2 callpeak -t ${bam} -n ${prefix} --gsize hs --nomodel --shiftsize=half_fragment_size ${broad}"
-  command += chip_inputinput ? '-c ${chip_input}' : ''
+  command += chip_input ? '-c ${chip_input}' : ''
 }
 
 process wiggle {
