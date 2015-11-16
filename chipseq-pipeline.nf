@@ -108,6 +108,6 @@ process wiggle {
   command += "bedGraphToBigWig ${prefix}.bedgraph ${chromSizes} ${prefix}.bw"
 }
 
-results.cat(peakCallResults, wiggleResults) {
+results.mix(peakCallResults, wiggleResults) {
   println it
 }
