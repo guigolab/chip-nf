@@ -78,10 +78,12 @@ modelParams = modelParams.map { prefix, out ->
   [prefix, out, maxPeak]
 }
 
+(modelParams1, modelParams2) = modelParams.into(2)
+
 process peakCall {
   input:
   set prefix, file(bam) from peakCallBams
-  set prefix, out, maxPeak from modelParams.first()
+  set prefix, out, maxPeak from modelParams1
 
   output:
   set prefix, file("${prefix}_peaks.xls"), file("${prefix}_summits.bed"), file("${prefix}_peaks.*Peak") into peakCallResults
@@ -97,7 +99,7 @@ process wiggle {
 
   input:
   set prefix, bam from wiggleBams
-  set prefix, out, maxPeak from modelParams.first()
+  set prefix, out, maxPeak from modelParams2
 
   output:
   set prefix, "${prefix}.bw", maxPeak into wiggleResults
