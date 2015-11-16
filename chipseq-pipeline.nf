@@ -60,44 +60,36 @@ process mapping {
   command += "samtools view -@ ${cpus} -bF256 ${prefix}.bam  > ${prefix}_primary.bam"
 }
 
-(modelBams, wiggleBams, peakCallBams, results) = bams.into(4)
-
 process model {
   input:
-  set prefix, file(bam) from modelBams
+  set prefix, file(bam) from bams
 
   output:
-  // stdout in peaks
   set prefix, file("${prefix}.params.out") into modelParams
+  set prefix, file(bam), file("${prefix}.params.out") into modelBams
 
   script:
   cpus = task.cpus
-  prefix = bam.baseName
   command = ""
   command += "Rscript \$(which run_spp.R) -c=${bam} -rf -out=${prefix}.params.out -savp=${prefix}.pdf -p=${cpus}\n"
 }
 
-modelParams = modelParams.map { prefix, out ->
-  maxPeak = out.text.split()[2].split(',')[0]
-  [prefix, out, maxPeak]
+modelBams = modelBams.map { prefix, bam, paramFile ->
+  maxPeak = paramFile.text.split()[2].split(',')[0]
+  [prefix, bam, maxPeak]
 }
 
-(modelParams1, modelParams2, modelParams3) = modelParams.into(3)
-
-result = result.mix(modelParams3)
-.groupTuple(by: 0)
-.map { [it[0], it[1][0], it[2][0] ] }
+(peakCallBams, wiggleBams, results) = modelBams.into(3)
 
 process peakCall {
   input:
-  set prefix, file(bam) from peakCallBams
-  set prefix, out, maxPeak from modelParams1
+  set prefix, file(bam), maxPeak from peakCallBams
 
   output:
   set prefix, file("${prefix}_peaks.xls"), maxPeak into peakCallResults
-  set prefix, file("${prefix}_summits.bed"), maxPeak into peakCallResults
+  /*set prefix, file("${prefix}_summits.bed"), maxPeak into peakCallResults
   set prefix, file("${prefix}_peaks.BroadPeak"), maxPeak into peakCallResults
-  set prefix, file("${prefix}_peaks.NarrowPeak"), maxPeak into peakCallResults
+  set prefix, file("${prefix}_peaks.NarrowPeak"), maxPeak into peakCallResults*/
 
   script:
   broad = (peak in broadPeaks) ? '--broad' : ''
@@ -109,11 +101,13 @@ process peakCall {
 process wiggle {
 
   input:
-  set prefix, bam from wiggleBams
-  set prefix, out, maxPeak from modelParams2
+  set prefix, file(bam), maxPeak from wiggleBams
 
   output:
   set prefix, "${prefix}.bw", maxPeak into wiggleResults
+
+  when:
+  params.wiggle
 
   script:
   command = ""
