@@ -84,7 +84,7 @@ process peakCall {
   set prefix, out, maxPeak from modelParams.first()
 
   output:
-  set prefix, file("${prefix}_peaks.xls"), file("${prefix}_summits.bed"), file("${prefix}_peaks.*Peak") into results
+  set prefix, file("${prefix}_peaks.xls"), file("${prefix}_summits.bed"), file("${prefix}_peaks.*Peak") into peakCallResults
 
   script:
   broad = (peak in broadPeaks) ? '--broad' : ''
@@ -100,7 +100,7 @@ process wiggle {
   set prefix, out, maxPeak from modelParams.first()
 
   output:
-  set prefix, "${prefix}.bw", maxPeak into results
+  set prefix, "${prefix}.bw", maxPeak into wiggleResults
 
   script:
   command = ""
@@ -108,4 +108,6 @@ process wiggle {
   command += "bedGraphToBigWig ${prefix}.bedgraph ${chromSizes} ${prefix}.bw"
 }
 
-results.println { it }
+results.cat(peakCallResults, wiggleResults) {
+  println it
+}
