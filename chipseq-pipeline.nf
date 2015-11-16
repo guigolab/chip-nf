@@ -48,7 +48,7 @@ process model {
 
   output:
   // stdout in peaks
-  set prefix, file("${prefix}.params.out") into param
+  set prefix, file("${prefix}.params.out") into model
 
   script:
   cpus = task.cpus
@@ -57,6 +57,12 @@ process model {
   command += "Rscript \$(which run_spp.R) -c=${bam} -rf -out=${prefix}.params.out -savp=${prefix}.pdf -p=${cpus}\n"
 }
 
+model = model.map { prefix, out ->
+  maxPeak = out.text.split()[3].split(',')[0]
+  [prefix, out, maxPeak]
+}
+
+model.println { it }
 // process peak {
 //   script:
 //   broad = { '--broad' if peak in broad_peaks else ''}
