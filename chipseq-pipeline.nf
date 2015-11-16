@@ -78,7 +78,11 @@ modelParams = modelParams.map { prefix, out ->
   [prefix, out, maxPeak]
 }
 
-(modelParams1, modelParams2) = modelParams.into(2)
+(modelParams1, modelParams2, modelParams3) = modelParams.into(3)
+
+result = result.mix(modelParams3)
+.groupTuple(by: 0)
+.map { [it[0], it[1][0], it[2][0] ] }
 
 process peakCall {
   input:
@@ -86,7 +90,10 @@ process peakCall {
   set prefix, out, maxPeak from modelParams1
 
   output:
-  set prefix, file("${prefix}_peaks.xls"), file("${prefix}_summits.bed"), file("${prefix}_peaks.*Peak") into peakCallResults
+  set prefix, file("${prefix}_peaks.xls"), maxPeak into peakCallResults
+  set prefix, file("${prefix}_summits.bed"), maxPeak into peakCallResults
+  set prefix, file("${prefix}_peaks.BroadPeak"), maxPeak into peakCallResults
+  set prefix, file("${prefix}_peaks.NarrowPeak"), maxPeak into peakCallResults
 
   script:
   broad = (peak in broadPeaks) ? '--broad' : ''
@@ -106,11 +113,17 @@ process wiggle {
 
   script:
   command = ""
-  command += "align2rawsignal -i=${bam} -s=${chromDir} -u=${genomeMapDir} -o=${prefix}.bedgraph -of=bg -v=stdout -l=${maxPeak-50}\n"
+  command += "align2rawsignal -i=${bam} -s=${chromDir} -u=${genomeMapDir} -o=${prefix}.bedgraph -of=bg -v=stdout -l=${(maxPeak as int)-50}\n"
   command += "bedGraphToBigWig ${prefix}.bedgraph ${chromSizes} ${prefix}.bw"
 }
 
 results.mix(peakCallResults, wiggleResults)
+.collectFile(name: pdb.name, storeDir: pdb.parent, newLine: true) { prefix, path, maxPeak ->
+    [prefix, path, maxPeak].join("\t")
+}
 .subscribe {
-  println it
+    log.info ""
+    log.info "-----------------------"
+    log.info "Pipeline run completed."
+    log.info "-----------------------"
 }
