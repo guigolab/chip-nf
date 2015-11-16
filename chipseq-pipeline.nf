@@ -77,7 +77,7 @@ modelParams = modelParams.map { prefix, out ->
 
 process peakCall {
   input:
-  set prefix, file(bam)bam from peakCallBams
+  set prefix, file(bam) from peakCallBams
 
   output:
   set file("${prefix}_peaks.xls"), file("${prefix}_summits.bed"), file("${prefix}_peaks.*Peak") into results
