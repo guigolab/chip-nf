@@ -85,7 +85,8 @@ process peakCall {
   script:
   broad = (peak in broad_peaks) ? '--broad' : ''
   command = ""
-  command += "macs2 callpeak -t ${bam} -n ${prefix} --gsize hs -c ${chip_input} --nomodel --shiftsize=half_fragment_size ${broad}"
+  command += "macs2 callpeak -t ${bam} -n ${prefix} --gsize hs --nomodel --shiftsize=half_fragment_size ${broad}"
+  command += chip_inputinput ? '-c ${chip_input}' : ''
 }
 
 process wiggle {
