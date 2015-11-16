@@ -46,7 +46,7 @@ process mapping {
   command += "samtools view -@ ${cpus} -bF256 ${prefix}.bam  > ${prefix}_primary.bam"
 }
 
-(modelBams, wigglerBams) = bams.into(2)
+(modelBams, wiggleBams) = bams.into(2)
 
 process model {
   input:
@@ -67,7 +67,7 @@ modelParams = modelParams.map { prefix, out ->
   maxPeak = out.text.split()[2].split(',')[0]
   [prefix, out, maxPeak]
 }
- 
+
 // process peak {
 //   script:
 //   broad = { '--broad' if peak in broad_peaks else ''}
@@ -79,7 +79,7 @@ modelParams = modelParams.map { prefix, out ->
 process wiggle {
 
   input:
-  set prefix, bam from modelBams
+  set prefix, bam from wiggleBams
   set prefix, out, maxPeak from modelParams
 
   output:
