@@ -2,10 +2,10 @@ params.mismatches = 2
 params.multimaps = 10
 params.dbFile = 'chipseq-pipeline.db'
 
-peak = null
 chipInput = null
 
-broadPeaks = [
+mark = null
+broadMarks = [
   "H3K27me3",
   "H3K36me3",
   "H3K9me3",
@@ -92,7 +92,7 @@ process peakCall {
   set prefix, file("${prefix}_peaks.NarrowPeak"), maxPeak into peakCallResults*/
 
   script:
-  broad = (peak in broadPeaks) ? '--broad' : ''
+  broad = (mark in broadMarks) ? '--broad' : ''
   command = ""
   command += "macs2 callpeak -t ${bam} -n ${prefix} --gsize hs --nomodel --extsize=${(maxPeak as int)/2} ${broad}"
   command += chipInput ? '-c ${chipInput}' : ''
