@@ -94,11 +94,11 @@ process mergeBam {
     cpus = task.cpus
     prefix = prefix.sort().join(':')
     command = ""
-    command += "(
+    command += """(
       samtools view -H ${bam} | grep -v "@RG";
 	    for f in ${bam}; do
 		    samtools view -H \$f | grep "@RG";
-	    done) > header.txt \n"
+	    done) > header.txt \n"""
     command += "samtools merge -@ ${cpus} -h header.txt ${mergeId}.bam ${bam}"
 
 }
