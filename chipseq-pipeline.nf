@@ -23,7 +23,7 @@ genomeMapDir="/users/rg/projects/references/Genome/H.sapiens/hg19/globalmap_k20t
 index = file(params.index)
 
 fastqs = Channel
-.from(input.readLines())
+.from(params.input.readLines())
 .map { line ->
   list = line.split()
   id = list[0]
@@ -97,7 +97,7 @@ process peakCall {
 
   output:
   set prefix, file("${prefix}_peaks*"), maxPeak into peakCallResults mode flatten
-  { mark in braodMarks ? null : set prefix, file("${prefix}_summits.bed"), maxPeak into peakCallResults }
+  set prefix, file("${prefix}*.bed"), maxPeak into peakCallResults mode flatten
 
   script:
   broad = (mark in broadMarks) ? '--broad' : ''
