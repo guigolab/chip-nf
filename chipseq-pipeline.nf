@@ -77,7 +77,7 @@ process mapping {
 singleBam = Channel.create()
 groupedBam = Channel.create()
 
-bams.groupTuple()
+bams.groupTuple(by: [0,3])
 .choice(singleBam, groupedBam) {
   it[2].size() > 1 ? 1 : 0
 }
@@ -106,11 +106,9 @@ process mergeBam {
 
 bams = singleBam
 .mix(mergedBam)
-.map { mergeId, prefix, file(bam), mark ->
-  [ mergeId, file(bam), mark ]
+.map { mergeId, prefix, bam, mark ->
+  [ mergeId, bam, mark ]
 }
-
-bams.subscribe { println it }
 
 process model {
   input:
