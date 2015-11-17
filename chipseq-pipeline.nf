@@ -110,7 +110,7 @@ process peakCall {
 process wiggle {
 
   input:
-  set prefix, file(bam), maxPeak from wiggleBams
+  set prefix, file(bam), mark, maxPeak from wiggleBams
 
   output:
   set prefix, "${prefix}.bw", maxPeak into wiggleResults
@@ -125,8 +125,8 @@ process wiggle {
 }
 
 results.mix(peakCallResults, wiggleResults)
-.collectFile(name: pdb.name, storeDir: pdb.parent, newLine: true) { prefix, path, maxPeak ->
-    [prefix, path, maxPeak].join("\t")
+.collectFile(name: pdb.name, storeDir: pdb.parent, newLine: true) { prefix, path, mark, maxPeak ->
+    [prefix, path, mark, maxPeak].join("\t")
 }
 .subscribe {
     log.info ""
