@@ -15,21 +15,32 @@ broadMarks = [
 pdb = file(params.dbFile)
 pdb.write('')
 
-fastqPattern = ~"(.+)_[0-9]+_[ACGTN]+.fastq(.gz)?"
+// fastqPattern = ~"(.+)_[0-9]+_[ACGTN]+.fastq(.gz)?"
 
 chromSizes="/users/rg/projects/references/Genome/H.sapiens/hg19/hg19.chromsizes"
 chromDir="/users/rg/projects/ERC/chipseq-human/genome/chrs"
 genomeMapDir="/users/rg/projects/references/Genome/H.sapiens/hg19/globalmap_k20tok54"
 
 index = file(params.index)
+
 fastqs = Channel
-.fromPath(params.input).map {
-    matcher = it.name =~ fastqPattern
-    if (!matcher) {
-      exit 1, "Cannot match fastq name"
-    }
-    [matcher.group(1), it, fastq(it).qualityScore()]
+.from(input.readLines())
+.map { line ->
+  list = line.split()
+  id = list[0]
+  path = file(list[1])
+  mark = list[2]
+  quality = fastq(list[2]).qualityScore()
+  [ id, path, mark, quality ]
 }
+// fastqs = Channel
+// .fromPath(params.input).map {
+//     matcher = it.name =~ fastqPattern
+//     if (!matcher) {
+//       exit 1, "Cannot match fastq name"
+//     }
+//     [matcher.group(1), it, fastq(it).qualityScore()]
+// }
 
 /*process index {
   input:
@@ -43,10 +54,10 @@ fastqs = Channel
 process mapping {
   input:
   file index
-  set prefix, file(fastq), quality from fastqs
+  set prefix, file(fastq), mark, quality from fastqs
 
   output:
-  set prefix, file("${prefix}_primary.bam") into bams
+  set prefix, file("${prefix}_primary.bam"),mark into bams
 
   script:
   cpus = task.cpus
@@ -62,11 +73,11 @@ process mapping {
 
 process model {
   input:
-  set prefix, file(bam) from bams
+  set prefix, file(bam), mark from bams
 
   output:
   set prefix, file("${prefix}.params.out") into modelParams
-  set prefix, file(bam), file("${prefix}.params.out") into modelBams
+  set prefix, file(bam), file("${prefix}.params.out"), mark into modelBams
 
   script:
   cpus = task.cpus
@@ -74,22 +85,20 @@ process model {
   command += "Rscript \$(which run_spp.R) -c=${bam} -rf -out=${prefix}.params.out -savp=${prefix}.pdf -p=${cpus}\n"
 }
 
-modelBams = modelBams.map { prefix, bam, paramFile ->
+modelBams = modelBams.map { prefix, bam, paramFile, mark ->
   maxPeak = paramFile.text.split()[2].split(',')[0]
-  [prefix, bam, maxPeak]
+  [prefix, bam, mark, maxPeak]
 }
 
 (peakCallBams, wiggleBams, results) = modelBams.into(3)
 
 process peakCall {
   input:
-  set prefix, file(bam), maxPeak from peakCallBams
+  set prefix, file(bam), mark, maxPeak from peakCallBams
 
   output:
-  set prefix, file("${prefix}_peaks.xls"), maxPeak into peakCallResults
-  /*set prefix, file("${prefix}_summits.bed"), maxPeak into peakCallResults
-  set prefix, file("${prefix}_peaks.BroadPeak"), maxPeak into peakCallResults
-  set prefix, file("${prefix}_peaks.NarrowPeak"), maxPeak into peakCallResults*/
+  set prefix, file("${prefix}_peaks*"), maxPeak into peakCallResults mode flatten
+  { mark in braodMarks ? null : set prefix, file("${prefix}_summits.bed"), maxPeak into peakCallResults }
 
   script:
   broad = (mark in broadMarks) ? '--broad' : ''
