@@ -141,7 +141,7 @@ process peakCall {
   script:
   broad = (mark in broadMarks) ? '--broad' : ''
   command = ""
-  command += "macs2 callpeak -t ${bam} -n ${prefix} --gsize hs --nomodel --extsize=${(maxPeak as int)/2} --outdir peakOut ${broad}"
+  command += "macs2 callpeak -t ${bam} -n ${prefix} --outdir peakOut --gsize hs --nomodel --extsize=${(maxPeak as int)/2} ${broad}"
   command += chipInput ? '-c ${chipInput}' : ''
 }
 
