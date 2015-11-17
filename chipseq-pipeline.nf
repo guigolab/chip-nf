@@ -97,13 +97,12 @@ process peakCall {
   set prefix, file(bam), mark, maxPeak from peakCallBams
 
   output:
-  set prefix, file("${prefix}_peaks*"), mark, maxPeak into peakCallResults mode flatten
-  set prefix, file("${prefix}*.bed"), mark, maxPeak into peakCallResults mode flatten
+  set prefix, file("peakOut/*"), mark, maxPeak into peakCallResults mode flatten
 
   script:
   broad = (mark in broadMarks) ? '--broad' : ''
   command = ""
-  command += "macs2 callpeak -t ${bam} -n ${prefix} --gsize hs --nomodel --extsize=${(maxPeak as int)/2} ${broad}"
+  command += "macs2 callpeak -t ${bam} -n ${prefix} --gsize hs --nomodel --extsize=${(maxPeak as int)/2} --outdir peakOut ${broad}"
   command += chipInput ? '-c ${chipInput}' : ''
 }
 
