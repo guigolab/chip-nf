@@ -58,12 +58,13 @@ process mapping {
   set mergeId, prefix, file(fastq), mark, quality from fastqs
 
   output:
-  set mergeId, prefix, file("${prefix}_primary.bam"), mark into bams
+  set mergeId, prefix, file("${prefix}_primary.bam"), mark, view into bams
 
   script:
   cpus = task.cpus
   memory = task.memory
   readGroup = "ID=${prefix},SM=${mergeId}"
+  view = "Alignments"
   cat = fastq.name.endsWith('.gz') ? 'zcat' : 'cat'
   awk_str = 'BEGIN{OFS=FS="\\t"}$0!~/^@/{split(\"1_2_8_32_64_128\",a,\"_\");for(i in a){if(and($2,a[i])>0){$2=xor($2,a[i])}}}{print}'
   command = ""
@@ -85,10 +86,10 @@ bams.groupTuple(by: [0,3])
 process mergeBam {
 
     input:
-    set mergeId, prefix, file(bam), mark from groupedBam
+    set mergeId, prefix, file(bam), mark, view from groupedBam
 
     output:
-    set mergeId, prefix, file("${mergeId}.bam"), mark into mergedBam
+    set mergeId, prefix, file("${mergeId}.bam"), mark, view into mergedBam
 
     script:
     cpus = task.cpus
@@ -106,17 +107,17 @@ process mergeBam {
 
 bams = singleBam
 .mix(mergedBam)
-.map { mergeId, prefix, bam, mark ->
-  [ mergeId, bam, mark ]
+.map { mergeId, prefix, bam, mark, view ->
+  [ mergeId, bam, mark, view]
 }
 
 process model {
   input:
-  set prefix, file(bam), mark from bams
+  set prefix, file(bam), mark, view from bams
 
   output:
   set prefix, file("${prefix}.params.out") into modelParams
-  set prefix, file(bam), file("${prefix}.params.out"), mark into modelBams
+  set prefix, file(bam), file("${prefix}.params.out"), mark, view into modelBams
 
   script:
   cpus = task.cpus
@@ -124,21 +125,22 @@ process model {
   command += "Rscript \$(which run_spp.R) -c=${bam} -rf -out=${prefix}.params.out -savp=${prefix}.pdf -p=${cpus}\n"
 }
 
-modelBams = modelBams.map { prefix, bam, paramFile, mark ->
+modelBams = modelBams.map { prefix, bam, paramFile, mark, view ->
   maxPeak = paramFile.text.split()[2].split(',')[0]
-  [prefix, bam, mark, maxPeak]
+  [prefix, bam, mark, maxPeak, view]
 }
 
 (peakCallBams, wiggleBams, results) = modelBams.into(3)
 
 process peakCall {
   input:
-  set prefix, file(bam), mark, maxPeak from peakCallBams
+  set prefix, file(bam), mark, maxPeak, view from peakCallBams
 
   output:
-  set prefix, file("peakOut/*"), mark, maxPeak into peakCallResults mode flatten
+  set prefix, file("peakOut/*"), mark, maxPeak, view into peakCallResults mode flatten
 
   script:
+  view = "peakCall"
   broad = (mark in broadMarks) ? '--broad' : ''
   command = ""
   command += "macs2 callpeak -t ${bam} -n ${prefix} --outdir peakOut --gsize hs --nomodel --extsize=${(maxPeak as int)/2} ${broad}"
@@ -148,23 +150,24 @@ process peakCall {
 process wiggle {
 
   input:
-  set prefix, file(bam), mark, maxPeak from wiggleBams
+  set prefix, file(bam), mark, maxPeak, view from wiggleBams
 
   output:
-  set prefix, "${prefix}.bw", maxPeak into wiggleResults
+  set prefix, "${prefix}.bw", maxPeak, view into wiggleResults
 
   when:
   !(params.noWiggle)
 
   script:
+  view = 'wiggle'
   command = ""
   command += "align2rawsignal -i=${bam} -s=${chromDir} -u=${genomeMapDir} -o=${prefix}.bedgraph -of=bg -v=stdout -l=${(maxPeak as int)-50}\n"
   command += "bedGraphToBigWig ${prefix}.bedgraph ${chromSizes} ${prefix}.bw"
 }
 
 results.mix(peakCallResults, wiggleResults)
-.collectFile(name: pdb.name, storeDir: pdb.parent, newLine: true) { prefix, path, mark, maxPeak ->
-    [ prefix, path, mark, maxPeak ].join("\t")
+.collectFile(name: pdb.name, storeDir: pdb.parent, newLine: true) { prefix, path, mark, maxPeak, view ->
+    [ prefix, path, mark, maxPeak, view ].join("\t")
 }
 .subscribe {
     log.info ""
