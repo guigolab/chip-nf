@@ -154,7 +154,7 @@ process wiggle {
   set prefix, "${prefix}.bw", maxPeak into wiggleResults
 
   when:
-  params.wiggle
+  !(params.noWiggle)
 
   script:
   command = ""
