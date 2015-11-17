@@ -153,7 +153,7 @@ process wiggle {
   set prefix, file(bam), mark, maxPeak, view from wiggleBams
 
   output:
-  set prefix, "${prefix}.bw", maxPeak, view into wiggleResults
+  set prefix, "${prefix}.bw", mark, maxPeak, view into wiggleResults
 
   when:
   !(params.noWiggle)
