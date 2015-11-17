@@ -88,7 +88,7 @@ process mergeBam {
     set mergeId, prefix, file(bam), mark from groupedBam
 
     output:
-    set mergeId, prefix, file("${mergeId}.bam") into mergedBam
+    set mergeId, prefix, file("${mergeId}.bam"), mark into mergedBam
 
     script:
     cpus = task.cpus
@@ -106,8 +106,8 @@ process mergeBam {
 
 bams = singleBam
 .mix(mergedBam)
-.map {
-    it.flatten()
+.map { mergeId, prefix, file(bam), mark ->
+  [ mergeId, file(bam), mark ]
 }
 
 bams.subscribe { println it }
