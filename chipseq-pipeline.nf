@@ -27,11 +27,12 @@ fastqs = Channel
 .from(input.readLines())
 .map { line ->
   list = line.split()
-  id = list[0]
-  path = file(list[1])
-  mark = list[2]
+  mergeId = list[0]
+  id = list[1]
+  path = file(list[2])
+  mark = list[3]
   quality = fastq(path).qualityScore()
-  [ id, path, mark, quality ]
+  [ mergeId, id, path, mark, quality ]
 }
 // fastqs = Channel
 // .fromPath(params.input).map {
@@ -54,22 +55,62 @@ fastqs = Channel
 process mapping {
   input:
   file index
-  set prefix, file(fastq), mark, quality from fastqs
+  set mergeId, prefix, file(fastq), mark, quality from fastqs
 
   output:
-  set prefix, file("${prefix}_primary.bam"), mark into bams
+  set mergeId, prefix, file("${prefix}_primary.bam"), mark into bams
 
   script:
   cpus = task.cpus
   memory = task.memory
+  readGroup = "ID=${prefix},SM=${mergeId}"
   cat = fastq.name.endsWith('.gz') ? 'zcat' : 'cat'
   awk_str = 'BEGIN{OFS=FS="\\t"}$0!~/^@/{split(\"1_2_8_32_64_128\",a,\"_\");for(i in a){if(and($2,a[i])>0){$2=xor($2,a[i])}}}{print}'
   command = ""
   command += "${cat} ${fastq} | gem-mapper -I ${index} -q offset-${quality} -T ${cpus} | pigz -p ${cpus} -c > ${prefix}.map.gz\n"
   command += "gt.filter -i ${prefix}.map.gz --max-levenshtein-error ${params.mismatches} -t ${cpus}| gt.filter --max-maps ${params.multimaps} -t ${cpus} | pigz -p ${cpus} -c > ${prefix}.filter.map.gz\n"
-  command += "pigz -p ${cpus} -dc ${prefix}.filter.map.gz | gem-2-sam -T ${cpus} -I ${index} -q offset-${quality} -l --expect-single-end-reads | awk '${awk_str}' | samtools view -@ ${cpus} -Sb - | samtools sort -@ ${cpus} - ${prefix}\n"
+  command += "pigz -p ${cpus} -dc ${prefix}.filter.map.gz | gem-2-sam -T ${cpus} -I ${index} -q offset-${quality} -l --expect-single-end-reads --read-group ${readGroup} | awk '${awk_str}' | samtools view -@ ${cpus} -Sb - | samtools sort -@ ${cpus} - ${prefix}\n"
   command += "samtools view -@ ${cpus} -bF256 ${prefix}.bam  > ${prefix}_primary.bam"
 }
+
+// Merge or rename bam
+singleBam = Channel.create()
+groupedBam = Channel.create()
+
+bam.groupTuple()
+.choice(singleBam, groupedBam) {
+  it[2].size() > 1 ? 1 : 0
+}
+
+process mergeBam {
+
+    input:
+    set mergeId, prefix, file(bam), mark from groupedBam
+
+    output:
+    set mergeId, prefix, file("${mergeId}.bam") into mergedBam
+
+    script:
+    cpus = task.cpus
+    prefix = prefix.sort().join(':')
+    command = ""
+    command += "(
+      samtools view -H ${bam} | grep -v "@RG";
+	    for f in ${bam}; do
+		    samtools view -H \$f | grep "@RG";
+	    done) > header.txt \n"
+    command += "samtools merge -@ ${cpus} -h header.txt ${mergeId}.bam ${bam}"
+
+}
+
+
+bams = singleBam
+.mix(mergedBam)
+.map {
+    it.flatten()
+}
+
+bams.subscribe { println it }
 
 process model {
   input:
