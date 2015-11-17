@@ -97,8 +97,8 @@ process peakCall {
   set prefix, file(bam), mark, maxPeak from peakCallBams
 
   output:
-  set prefix, file("${prefix}_peaks*"), maxPeak into peakCallResults mode flatten
-  set prefix, file("${prefix}*.bed"), maxPeak into peakCallResults mode flatten
+  set prefix, file("${prefix}_peaks*"), mark, maxPeak into peakCallResults mode flatten
+  set prefix, file("${prefix}*.bed"), mark, maxPeak into peakCallResults mode flatten
 
   script:
   broad = (mark in broadMarks) ? '--broad' : ''
@@ -126,7 +126,7 @@ process wiggle {
 
 results.mix(peakCallResults, wiggleResults)
 .collectFile(name: pdb.name, storeDir: pdb.parent, newLine: true) { prefix, path, mark, maxPeak ->
-    [prefix, path, mark, maxPeak].join("\t")
+    [ prefix, path, mark, maxPeak ].join("\t")
 }
 .subscribe {
     log.info ""
