@@ -77,7 +77,7 @@ process mapping {
 singleBam = Channel.create()
 groupedBam = Channel.create()
 
-bam.groupTuple()
+bams.groupTuple()
 .choice(singleBam, groupedBam) {
   it[2].size() > 1 ? 1 : 0
 }
