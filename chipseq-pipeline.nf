@@ -30,7 +30,7 @@ fastqs = Channel
   id = list[0]
   path = file(list[1])
   mark = list[2]
-  quality = fastq(list[1]).qualityScore()
+  quality = fastq(path).qualityScore()
   [ id, path, mark, quality ]
 }
 // fastqs = Channel
@@ -57,7 +57,7 @@ process mapping {
   set prefix, file(fastq), mark, quality from fastqs
 
   output:
-  set prefix, file("${prefix}_primary.bam"),mark into bams
+  set prefix, file("${prefix}_primary.bam"), mark into bams
 
   script:
   cpus = task.cpus
