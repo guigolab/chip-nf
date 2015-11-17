@@ -4,7 +4,6 @@ params.dbFile = 'chipseq-pipeline.db'
 
 chipInput = null
 
-mark = null
 broadMarks = [
   "H3K27me3",
   "H3K36me3",
