@@ -21,9 +21,10 @@ chromDir="/users/rg/projects/ERC/chipseq-human/genome/chrs"
 genomeMapDir="/users/rg/projects/references/Genome/H.sapiens/hg19/globalmap_k20tok54"
 
 index = file(params.index)
+input = file(params.input)
 
 fastqs = Channel
-.from(params.input.readLines())
+.from(input.readLines())
 .map { line ->
   list = line.split()
   id = list[0]
