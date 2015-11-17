@@ -29,7 +29,7 @@ fastqs = Channel
   id = list[0]
   path = file(list[1])
   mark = list[2]
-  quality = fastq(list[2]).qualityScore()
+  quality = fastq(list[1]).qualityScore()
   [ id, path, mark, quality ]
 }
 // fastqs = Channel
