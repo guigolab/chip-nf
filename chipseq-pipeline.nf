@@ -69,7 +69,7 @@ process splitChroms {
 
 process mapping {
   input:
-  file index from genomeIndex
+  file index from genomeIndex.val
   set mergeId, prefix, file(fastq), mark, quality from fastqs
 
   output:
@@ -165,8 +165,8 @@ process peakCall {
 process wiggle {
 
   input:
-  file chromSizes
-  file chromDir
+  file chromSizes from chromSizes.val
+  file chromDir from chromDir.val
   set prefix, file(bam), mark, maxPeak, view from wiggleBams
 
   output:
