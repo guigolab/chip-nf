@@ -157,7 +157,7 @@ process peakCall {
   script:
   view = "peakCall"
   broad = (mark in broadMarks) ? '--broad' : ''
-  extSize = Math.round(estFragLen as int)/2)
+  extSize = Math.round((estFragLen as int)/2)
   command = ""
   command += "macs2 callpeak -t ${bam} -n ${prefix} --outdir peakOut --gsize hs --nomodel --extsize=${extSize} ${broad}"
   command += chipInput ? '-c ${chipInput}' : ''
