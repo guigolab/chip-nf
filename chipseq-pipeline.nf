@@ -141,24 +141,25 @@ process model {
 }
 
 modelBams = modelBams.map { prefix, bam, paramFile, mark, view ->
-  maxPeak = paramFile.text.split()[2].split(',')[0]
-  [prefix, bam, mark, maxPeak, view]
+  estFragLen = paramFile.text.split()[2].split(',')[0]
+  [prefix, bam, mark, estFragLen, view]
 }
 
 (peakCallBams, wiggleBams, results) = modelBams.into(3)
 
 process peakCall {
   input:
-  set prefix, file(bam), mark, maxPeak, view from peakCallBams
+  set prefix, file(bam), mark, estFragLen, view from peakCallBams
 
   output:
-  set prefix, file("peakOut/*"), mark, maxPeak, view into peakCallResults mode flatten
+  set prefix, file("peakOut/*"), mark, estFragLen, view into peakCallResults mode flatten
 
   script:
   view = "peakCall"
   broad = (mark in broadMarks) ? '--broad' : ''
+  extSize = Math.round(estFragLen as int)/2)
   command = ""
-  command += "macs2 callpeak -t ${bam} -n ${prefix} --outdir peakOut --gsize hs --nomodel --extsize=${(maxPeak as int)/2} ${broad}"
+  command += "macs2 callpeak -t ${bam} -n ${prefix} --outdir peakOut --gsize hs --nomodel --extsize=${extSize} ${broad}"
   command += chipInput ? '-c ${chipInput}' : ''
 }
 
@@ -167,10 +168,10 @@ process wiggle {
   input:
   file chromSizes from chromSizes.val
   file chromDir from chromDir.val
-  set prefix, file(bam), mark, maxPeak, view from wiggleBams
+  set prefix, file(bam), mark, estFragLen, view from wiggleBams
 
   output:
-  set prefix, "${prefix}.bw", mark, maxPeak, view into wiggleResults
+  set prefix, "${prefix}.bw", mark, estFragLen, view into wiggleResults
 
   when:
   !(params.noWiggle)
@@ -178,7 +179,7 @@ process wiggle {
   script:
   view = 'wiggle'
   command = ""
-  command += "align2rawsignal -i=${bam} -s=${chromDir} -u=${genomeMapDir} -o=${prefix}.bedgraph -of=bg -v=stdout -l=${(maxPeak as int)-50}\n"
+  command += "align2rawsignal -i=${bam} -s=${chromDir} -u=${genomeMapDir} -o=${prefix}.bedgraph -of=bg -v=stdout -l=${(estFragLen as int)-50}\n"
   command += "bedGraphToBigWig ${prefix}.bedgraph ${chromSizes} ${prefix}.bw"
 }
 
