@@ -40,7 +40,7 @@ process index {
   script:
   command = ""
   command += "sed 's/ .*//' ${genome} > genome_processed.fa\n"
-  command += "gem-indexer -i genome_processed.fa -o genome_index -T ${task.cpus} -m ${task.memory.toGiga()}GB && rm genome_processed.fa"
+  command += "gem-indexer -i genome_processed.fa -o genome_index -T ${task.cpus} -m ${task.memory.toBytes()} && rm genome_processed.fa"
 }
 
 process fastaIndex {
