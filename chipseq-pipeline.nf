@@ -181,7 +181,7 @@ process wiggle {
   command = ""
   command += "align2rawsignal -i=${bam} -s=${chromDir} -u=${genomeMapDir}"
   command += " -o=${prefix}.bedgraph -of=bg -v=stdout -l=${(estFragLen as int)-50}"
-  command += " -mm=${Math.round(task.memory * 0.8)}\n"
+  command += " -mm=${Math.round(task.memory.toGiga() * 0.8)}\n"
   command += "bedGraphToBigWig ${prefix}.bedgraph ${chromSizes} ${prefix}.bw"
 }
 
