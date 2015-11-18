@@ -40,7 +40,7 @@ process index {
   script:
   command = ""
   command += "sed 's/ .*//' ${genome} > genome_processed.fa\n"
-  command += "gem-indexer -i genome_processed.fa -o genome_index -T ${task.cpus} -m ${task.memory} && rm genome_processed.fa\n"
+  command += "gem-indexer -i genome_processed.fa -o genome_index -T ${task.cpus} -m ${task.memory} && rm genome_processed.fa"
 }
 
 process fastaIndex {
@@ -64,7 +64,7 @@ process splitChroms {
 
   script:
   command = ""
-  command += "mkdir chroms && awk '$0~/^>/{chrom=substr($1,2);}{print > chrom\".fa\"}' ${genome}\n"
+  command += "mkdir chroms && awk '\$0~/^>/{chrom=substr(\$1,2);}{print > chrom\".fa\"}' ${genome}"
 }
 
 process mapping {
