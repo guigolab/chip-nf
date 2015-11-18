@@ -14,14 +14,9 @@ broadMarks = [
 pdb = file(params.dbFile)
 pdb.write('')
 
-// fastqPattern = ~"(.+)_[0-9]+_[ACGTN]+.fastq(.gz)?"
-
-chromSizes="/users/rg/projects/references/Genome/H.sapiens/hg19/hg19.chromsizes"
-chromDir="/users/rg/projects/ERC/chipseq-human/genome/chrs"
-genomeMapDir="/users/rg/projects/references/Genome/H.sapiens/hg19/globalmap_k20tok54"
-
-index = file(params.index)
+genome = file(params.genome)
 input = file(params.input)
+genomeMapDir = file(params.genomeMapDir)
 
 fastqs = Channel
 .from(input.readLines())
@@ -34,27 +29,47 @@ fastqs = Channel
   quality = fastq(path).qualityScore()
   [ mergeId, id, path, mark, quality ]
 }
-// fastqs = Channel
-// .fromPath(params.input).map {
-//     matcher = it.name =~ fastqPattern
-//     if (!matcher) {
-//       exit 1, "Cannot match fastq name"
-//     }
-//     [matcher.group(1), it, fastq(it).qualityScore()]
-// }
 
-/*process index {
+process index {
   input:
   file genome
 
-  """
-  gem-indexer -i {genome} -o ${genome_pref} -T ${cpus} -m ${memory}
-  """
-}*/
+  output:
+  file "genome_index.gem" into genomeIndex
+
+  script:
+  command = ""
+  command += "sed 's/ .*//' ${genome} > genome_processed.fa\n"
+  command += "gem-indexer -i genome_processed.fa -o genome_index -T ${task.cpus} -m ${task.memory} && rm genome_processed.fa\n"
+}
+
+process fastaIndex {
+  input:
+  file genome
+
+  output:
+  file "${genome}.fai" into chromSizes
+
+  script:
+  command = ""
+  command += "samtools faidx ${genome}"
+}
+
+process splitChroms {
+  input:
+  file genome
+
+  output:
+  file "chroms" into chromDir
+
+  script:
+  command = ""
+  command += "mkdir chroms && awk '$0~/^>/{chrom=substr($1,2);}{print > chrom\".fa\"}' ${genome}\n"
+}
 
 process mapping {
   input:
-  file index
+  file index from genomeIndex
   set mergeId, prefix, file(fastq), mark, quality from fastqs
 
   output:
@@ -150,6 +165,8 @@ process peakCall {
 process wiggle {
 
   input:
+  file chromSizes
+  file chromDir
   set prefix, file(bam), mark, maxPeak, view from wiggleBams
 
   output:
