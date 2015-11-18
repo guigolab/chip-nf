@@ -64,7 +64,8 @@ process splitChroms {
 
   script:
   command = ""
-  command += "mkdir chroms && awk '\$0~/^>/{chrom=substr(\$1,2);}{print > chrom\".fa\"}' ${genome}"
+  command += "mkdir chroms && cd chroms"
+  command += "awk '\$0~/^>/{chrom=substr(\$1,2);}{print > chrom\".fa\"}' ${genome}"
 }
 
 process mapping {
