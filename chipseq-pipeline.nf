@@ -179,7 +179,7 @@ process wiggle {
   script:
   view = 'wiggle'
   command = ""
-  command += "align2rawsignal -i=${bam} -s=${chromDir} -u=${genomeMapDir} -o=${prefix}.bedgraph -of=bg -v=stdout -l=${(estFragLen as int)-50}\n"
+  command += "align2rawsignal -i=${bam} -s=${chromDir} -u=${genomeMapDir} -o=${prefix}.bedgraph -of=bg -v=stdout -l=${(estFragLen as int)-50} -mm=${task.memory.toGiga()}\n"
   command += "bedGraphToBigWig ${prefix}.bedgraph ${chromSizes} ${prefix}.bw"
 }
 
