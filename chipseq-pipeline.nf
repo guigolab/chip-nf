@@ -55,18 +55,6 @@ process fastaIndex {
   command += "samtools faidx ${genome}"
 }
 
-process splitChroms {
-  input:
-  file genome
-
-  output:
-  file "chroms" into chromDir
-
-  script:
-  command = ""
-  command += "mkdir chroms && awk '\$0~/^>/{chrom=substr(\$1,2);}{print > \"chroms/\"chrom\".fa\"}' ${genome}"
-}
-
 process mapping {
   input:
   file index from genomeIndex.val
@@ -145,7 +133,7 @@ modelBams = modelBams.map { prefix, bam, paramFile, mark, view ->
   [prefix, bam, mark, estFragLen, view]
 }
 
-(peakCallBams, wiggleBams, results) = modelBams.into(3)
+(peakCallBams, results) = modelBams.into(2)
 
 process peakCall {
   input:
@@ -163,29 +151,7 @@ process peakCall {
   command += chipInput ? '-c ${chipInput}' : ''
 }
 
-process wiggle {
-
-  input:
-  file chromSizes from chromSizes.val
-  file chromDir from chromDir.val
-  set prefix, file(bam), mark, estFragLen, view from wiggleBams
-
-  output:
-  set prefix, "${prefix}.bw", mark, estFragLen, view into wiggleResults
-
-  when:
-  !(params.noWiggle)
-
-  script:
-  view = 'wiggle'
-  command = ""
-  command += "align2rawsignal -i=${bam} -s=${chromDir} -u=${genomeMapDir}"
-  command += " -o=${prefix}.bedgraph -of=bg -v=stdout -l=${(estFragLen as int)-50}"
-  command += " -mm=${Math.round(task.memory.toGiga() * 0.5)}\n"
-  command += "bedGraphToBigWig ${prefix}.bedgraph ${chromSizes} ${prefix}.bw"
-}
-
-results.mix(peakCallResults, wiggleResults)
+results.mix(peakCallResults)
 .collectFile(name: pdb.name, storeDir: pdb.parent, newLine: true) { prefix, path, mark, maxPeak, view ->
     [ prefix, path, mark, maxPeak, view ].join("\t")
 }
