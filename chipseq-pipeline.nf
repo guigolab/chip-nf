@@ -122,7 +122,7 @@ bams.choice(treat, control) {
 }
 
 bams = control.cross(treat) { it[2] }.map { t, i ->
-    [t[0], t[1], i[1], t[3], t[4]
+    [t[0], t[1], i[1], t[3], t[4]]
 }
 
 process model {
