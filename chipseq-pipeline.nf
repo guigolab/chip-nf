@@ -58,10 +58,10 @@ process fastaIndex {
 process mapping {
   input:
   file index from genomeIndex.val
-  set mergeId, prefix, file(fastq), mark, quality from fastqs
+  set mergeId, prefix, file(fastq), controlId, mark, quality from fastqs
 
   output:
-  set mergeId, prefix, file("${prefix}_primary.bam"), mark, view into bams
+  set mergeId, prefix, file("${prefix}_primary.bam"), controlId, mark, view into bams
 
   script:
   cpus = task.cpus
@@ -89,10 +89,10 @@ bams.groupTuple(by: [0,3,4])
 process mergeBam {
 
     input:
-    set mergeId, prefix, file(bam), mark, view from groupedBam
+    set mergeId, prefix, file(bam), controlId, mark, view from groupedBam
 
     output:
-    set mergeId, prefix, file("${mergeId}.bam"), mark, view into mergedBam
+    set mergeId, prefix, file("${mergeId}.bam"), controlId, mark, view into mergedBam
 
     script:
     cpus = task.cpus
@@ -110,17 +110,28 @@ process mergeBam {
 
 bams = singleBam
 .mix(mergedBam)
-.map { mergeId, prefix, bam, mark, view ->
-  [ mergeId, bam, mark, view]
+.map { mergeId, prefix, bam, controlId, mark, view ->
+  [ mergeId, bam, controlId, mark, view]
+}
+
+// cross bams and inputs
+treat = Channel.create()
+control = Channel.create()
+bams.choice(treat, control) {
+    it[3] == 'input' ? 1 : 0
+}
+
+bams = control.cross(treat) { it[2] }.map { t, i ->
+    [t[0], t[1], i[1], t[3], t[4]
 }
 
 process model {
   input:
-  set prefix, file(bam), mark, view from bams
+  set prefix, file(bam), file(control), mark, view from bams
 
   output:
   set prefix, file("${prefix}.params.out") into modelParams
-  set prefix, file(bam), file("${prefix}.params.out"), mark, view into modelBams
+  set prefix, file(bam), file(control), file("${prefix}.params.out"), mark, view into modelBams
 
   script:
   cpus = task.cpus
@@ -128,9 +139,9 @@ process model {
   command += "Rscript \$(which run_spp.R) -c=${bam} -rf -out=${prefix}.params.out -savp=${prefix}.pdf -p=${cpus}\n"
 }
 
-modelBams = modelBams.map { prefix, bam, paramFile, mark, view ->
+modelBams = modelBams.map { prefix, bam, control, paramFile, mark, view ->
   estFragLen = paramFile.text.split()[2].split(',')[0]
-  [prefix, bam, mark, estFragLen, view]
+  [prefix, bam, control, mark, estFragLen, view]
 }
 
 (peakCallBams, results) = modelBams.into(2)
@@ -179,13 +190,13 @@ process peakCall {
   command += "bedGraphToBigWig peakOut/${prefix}.pval.signal.bedgraph ${chromSizes} peakOut/${prefix}.pval_signal.bw\n"
 }
 
-results.mix(peakCallResults)
-.collectFile(name: pdb.name, storeDir: pdb.parent, newLine: true) { prefix, path, mark, maxPeak, view ->
-    [ prefix, path, mark, maxPeak, view ].join("\t")
-}
-.subscribe {
-    log.info ""
-    log.info "-----------------------"
-    log.info "Pipeline run completed."
-    log.info "-----------------------"
-}
+results.mix(peakCallResults).subscribe { println it }
+// .collectFile(name: pdb.name, storeDir: pdb.parent, newLine: true) { prefix, path, mark, maxPeak, view ->
+//     [ prefix, path, mark, maxPeak, view ].join("\t")
+// }
+// .subscribe {
+//     log.info ""
+//     log.info "-----------------------"
+//     log.info "Pipeline run completed."
+//     log.info "-----------------------"
+// }
