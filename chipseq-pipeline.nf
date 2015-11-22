@@ -25,9 +25,10 @@ fastqs = Channel
   mergeId = list[0]
   id = list[1]
   path = file(list[2])
-  mark = list[3]
+  controlId = list[3]
+  mark = list[4]
   quality = fastq(path).qualityScore()
-  [ mergeId, id, path, mark, quality ]
+  [ mergeId, id, path, controlId, mark, quality ]
 }
 
 process index {
