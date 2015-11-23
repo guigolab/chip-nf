@@ -173,7 +173,7 @@ process peakCall {
   // rescale peaks on 10-1000 scale
   if ( params.rescale ) {
     ['narrow', 'broad', 'gapped'].collect { type ->
-      rescale_awk_str = 'BEGIN{FS=OFS="\t";min=1e20;max=-1}'
+      rescale_awk_str = 'BEGIN{FS=OFS="\\t";min=1e20;max=-1}'
       rescale_awk_str += 'NR==FNR&&NF!=0{min>$5?min=$5:min=min;max<$5?max=$5:max=max}'
       rescale_awk_str += 'NF!=0{n=$5;x=10;y=1000;$5=int(((n-min)*(y-x)/(max-min))+x);print}'
       command += "awk ${rescale_awk_str} peakOut/${prefix}_peaks.${type}Peak peakOut/${prefix}_peaks.${type}Peak"
