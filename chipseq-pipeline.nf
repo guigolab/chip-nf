@@ -167,11 +167,11 @@ process peakCall {
   command = ""
   // narrow peaks and preliminary signal tracks
   command += "macs2 callpeak -t ${bam} -c ${control} -n ${prefix} --outdir peakOut"
-  command += " -f BED -g hs -p 1e-2 --nomodel --extsize=${fragLen}"
+  command += " -f BAM -g hs -p 1e-2 --nomodel --extsize=${fragLen}"
   command += " --keep-dup all -B --SPMR\n"
   // Broad and Gapped Peaks
   command += "macs2 callpeak -t ${bam} -c ${control} -n ${prefix} --outdir peakOut"
-  command += " -f BED -g hs -p 1e-2 --broad --nomodel --extsize=${fragLen}"
+  command += " -f BAM -g hs -p 1e-2 --broad --nomodel --extsize=${fragLen}"
   command += " --keep-dup all\n"
   // Fold enrichment signal tracks
   command += "macs2 bdgcmp -t peakOut/${prefix}_treat_pileup.bdg"
