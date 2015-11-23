@@ -112,7 +112,7 @@ process mergeBam {
 bams = singleBam
 .mix(mergedBam)
 .map { mergeId, prefix, bam, controlId, mark, view ->
-  [ mergeId, bam, controlId, mark, view]
+  [ mergeId, bam, controlId, mark, view].flatten()
 }
 
 // cross bams and inputs
