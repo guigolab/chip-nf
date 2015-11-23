@@ -160,9 +160,6 @@ process peakCall {
   set prefix, file("peakOut/${prefix}.pval_signal.bw"), mark, estFragLen, val("pvalueSignal") into peakCallResults
 
   script:
-  rescale_awk_str = 'BEGIN{FS=OFS="\t";min=1e20;max=-1}'
-  rescale_awk_str += 'NR==FNR&&NF!=0{min>$5?min=$5:min=min;max<$5?max=$5:max=max}'
-  rescale_awk_str += 'NF!=0{n=$5;x=10;y=1000;$5=int(((n-min)*(y-x)/(max-min))+x);print}'
   //extSize = Math.round((fragLen as int)/2)
   command = ""
   // narrow peaks and preliminary signal tracks
@@ -173,6 +170,16 @@ process peakCall {
   command += "macs2 callpeak -t ${bam} -c ${control} -n ${prefix} --outdir peakOut"
   command += " -f BAM -g hs -p 1e-2 --broad --nomodel --extsize=${fragLen}"
   command += " --keep-dup all\n"
+  // rescale peaks on 10-1000 scale
+  if ( params.rescale ) {
+    ['narrow', 'broad', 'gapped'].collect { type ->
+      rescale_awk_str = 'BEGIN{FS=OFS="\t";min=1e20;max=-1}'
+      rescale_awk_str += 'NR==FNR&&NF!=0{min>$5?min=$5:min=min;max<$5?max=$5:max=max}'
+      rescale_awk_str += 'NF!=0{n=$5;x=10;y=1000;$5=int(((n-min)*(y-x)/(max-min))+x);print}'
+      command += "awk ${rescale_awk_str} peakOut/${prefix}_peaks.${type}Peak peakOut/${prefix}_peaks.${type}Peak"
+      command += " > peakOut/${prefix}_peaks.${type}Peak_rescaled && mv peakOut/${prefix}_peaks.${type}Peak{_rescaled,}\n"
+    }
+  }
   // Fold enrichment signal tracks
   command += "macs2 bdgcmp -t peakOut/${prefix}_treat_pileup.bdg"
 	command += " -c peakOut/${prefix}_control_lambda.bdg --outdir peakOut"
@@ -189,10 +196,11 @@ process peakCall {
   command += "slopBed -i peakOut/${prefix}_ppois.bdg -g ${chromSizes} -b 0"
   command += " | bedClip stdin ${chromSizes} peakOut/${prefix}.pval.signal.bedgraph\n"
   command += "bedGraphToBigWig peakOut/${prefix}.pval.signal.bedgraph ${chromSizes} peakOut/${prefix}.pval_signal.bw\n"
+  command += "rm -rf peakOut/${prefix}*.bdg peakOut/${prefix}*.bedgraph peakOut/${prefix}*.xls peakOut/${prefix}*.bed"
 }
 
 results.map { prefix, bam, control, mark, fragLen, view ->
-  [ prefix, bam, mark, fragLen, view]
+  [ prefix, bam, mark, fragLen, view ]
 }
 .mix(peakCallResults)
 .collectFile(name: pdb.name, storeDir: pdb.parent, newLine: true) { prefix, path, mark, fragLen, view ->
