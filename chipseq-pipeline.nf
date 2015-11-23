@@ -141,8 +141,8 @@ process model {
 }
 
 modelBams = modelBams.map { prefix, bam, control, paramFile, mark, view ->
-  estFragLen = paramFile.text.split()[2].split(',')[0]
-  [prefix, bam, control, mark, estFragLen, view]
+  fragLen = paramFile.text.split()[2].split(',')[0]
+  [prefix, bam, control, mark, fragLen, view]
 }
 
 (peakCallBams, results) = modelBams.into(2)
@@ -153,11 +153,11 @@ process peakCall {
   set prefix, file(bam), file(control), mark, fragLen, view from peakCallBams
 
   output:
-  set prefix, file("peakOut/${prefix}_peaks.narrowPeak"), mark, estFragLen, "narrowPeak" into peakCallResults
-  set prefix, file("peakOut/${prefix}_peaks.broadPeak"), mark, estFragLen, "broadPeak" into peakCallResults
-  set prefix, file("peakOut/${prefix}_peaks.gappedPeak"), mark, estFragLen, "gappedPeak" into peakCallResults
-  set prefix, file("peakOut/${prefix}.fc_signal.bw"), mark, estFragLen, "fcSignal" into peakCallResults
-  set prefix, file("peakOut/${prefix}.pvalue_signal.bw"), mark, estFragLen, "pvalueSignal" into peakCallResults
+  set prefix, file("peakOut/${prefix}_peaks.narrowPeak"), mark, estFragLen, val("narrowPeak") into peakCallResults
+  set prefix, file("peakOut/${prefix}_peaks.broadPeak"), mark, estFragLen, val("broadPeak") into peakCallResults
+  set prefix, file("peakOut/${prefix}_peaks.gappedPeak"), mark, estFragLen, val("gappedPeak") into peakCallResults
+  set prefix, file("peakOut/${prefix}.fc_signal.bw"), mark, estFragLen, val("fcSignal") into peakCallResults
+  set prefix, file("peakOut/${prefix}.pval_signal.bw"), mark, estFragLen, val("pvalueSignal") into peakCallResults
 
   script:
   rescale_awk_str = 'BEGIN{FS=OFS="\t";min=1e20;max=-1}'
@@ -191,13 +191,16 @@ process peakCall {
   command += "bedGraphToBigWig peakOut/${prefix}.pval.signal.bedgraph ${chromSizes} peakOut/${prefix}.pval_signal.bw\n"
 }
 
-results.mix(peakCallResults).subscribe { println it }
-// .collectFile(name: pdb.name, storeDir: pdb.parent, newLine: true) { prefix, path, mark, maxPeak, view ->
-//     [ prefix, path, mark, maxPeak, view ].join("\t")
-// }
-// .subscribe {
-//     log.info ""
-//     log.info "-----------------------"
-//     log.info "Pipeline run completed."
-//     log.info "-----------------------"
-// }
+results.map { prefix, bam, control, mark, fragLen, view ->
+  [ prefix, bam, mark, fragLen, view]
+}
+.mix(peakCallResults)
+.collectFile(name: pdb.name, storeDir: pdb.parent, newLine: true) { prefix, path, mark, fragLen, view ->
+    [ prefix, path, mark, fragLen, view ].join("\t")
+}
+.subscribe {
+    log.info ""
+    log.info "-----------------------"
+    log.info "Pipeline run completed."
+    log.info "-----------------------"
+}
