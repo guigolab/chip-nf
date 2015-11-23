@@ -153,11 +153,11 @@ process peakCall {
   set prefix, file(bam), file(control), mark, fragLen, view from peakCallBams
 
   output:
-  set prefix, file("peakOut/${prefix}_peaks.narrowPeak"), mark, estFragLen, val("narrowPeak") into peakCallResults
-  set prefix, file("peakOut/${prefix}_peaks.broadPeak"), mark, estFragLen, val("broadPeak") into peakCallResults
-  set prefix, file("peakOut/${prefix}_peaks.gappedPeak"), mark, estFragLen, val("gappedPeak") into peakCallResults
-  set prefix, file("peakOut/${prefix}.fc_signal.bw"), mark, estFragLen, val("fcSignal") into peakCallResults
-  set prefix, file("peakOut/${prefix}.pval_signal.bw"), mark, estFragLen, val("pvalueSignal") into peakCallResults
+  set prefix, file("peakOut/${prefix}_peaks.narrowPeak"), mark, fragLen, val("narrowPeak") into peakCallResults
+  set prefix, file("peakOut/${prefix}_peaks.broadPeak"), mark, fragLen, val("broadPeak") into peakCallResults
+  set prefix, file("peakOut/${prefix}_peaks.gappedPeak"), mark, fragLen, val("gappedPeak") into peakCallResults
+  set prefix, file("peakOut/${prefix}.fc_signal.bw"), mark, fragLen, val("fcSignal") into peakCallResults
+  set prefix, file("peakOut/${prefix}.pval_signal.bw"), mark, fragLen, val("pvalueSignal") into peakCallResults
 
   script:
   //extSize = Math.round((fragLen as int)/2)
