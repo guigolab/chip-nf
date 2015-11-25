@@ -149,7 +149,7 @@ modelBams = modelBams.map { prefix, bam, control, paramFile, mark, view ->
 
 process peakCall {
   input:
-  file chromSizes
+  file chromSizes from chromSizes.val
   set prefix, file(bam), file(control), mark, fragLen, view from peakCallBams
 
   output:
