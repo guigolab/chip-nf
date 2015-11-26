@@ -16,7 +16,6 @@ pdb.write('')
 
 genome = file(params.genome)
 input = file(params.input)
-genomeMapDir = file(params.genomeMapDir)
 
 fastqs = Channel
 .from(input.readLines())
