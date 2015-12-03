@@ -114,24 +114,20 @@ bams = singleBam
   [ mergeId, bam, controlId, mark, view].flatten()
 }
 
-// cross bams and inputs
+// separate bams and inputs
 treat = Channel.create()
 control = Channel.create()
 bams.choice(treat, control) {
     it[3] == 'input' ? 1 : 0
 }
 
-bams = control.cross(treat) { it[2] }.map { c, t ->
-    [t[0], t[1], c[1], t[3], t[4]]
-}
-
 process model {
   input:
-  set prefix, file(bam), file(control), mark, view from bams
+  set prefix, file(bam), controlId, mark, view from treat
 
   output:
   set prefix, file("${prefix}.params.out") into modelParams
-  set prefix, file(bam), file(control), file("${prefix}.params.out"), mark, view into modelBams
+  set prefix, file(bam), controlId, file("${prefix}.params.out"), mark, view into modelBams
 
   script:
   cpus = task.cpus
@@ -139,17 +135,26 @@ process model {
   command += "Rscript \$(which run_spp.R) -c=${bam} -rf -out=${prefix}.params.out -savp=${prefix}.pdf -p=${cpus}\n"
 }
 
-modelBams = modelBams.map { prefix, bam, control, paramFile, mark, view ->
-  fragLen = paramFile.text.split()[2].split(',')[0]
-  [prefix, bam, control, mark, fragLen, view]
+(bams, results) = modelBams.into(2)
+
+// get bams with no control
+bams.tap { allBams }
+.filter {
+  it[2] == '-'
+}.map {
+  [it[0], it[1], it[3], it[4]]
+}.tap { bamsNoInput }
+
+// cross bams and controls
+bamsWithInput = control.cross(allBams) { it[2] }.map { c, t ->
+    fragLen = t[3].text.split()[2].split(',')[0]
+    [t[0], t[1], c[1], t[4], fragLen, t[5]]
 }
 
-(peakCallBams, results) = modelBams.into(2)
-
-process peakCall {
+process peakCallWithInput {
   input:
   file chromSizes from chromSizes.val
-  set prefix, file(bam), file(control), mark, fragLen, view from peakCallBams
+  set prefix, file(bam), file(control), mark, fragLen, view from bamsWithInput
 
   output:
   set prefix, file("peakOut/${prefix}_peaks.narrowPeak"), mark, fragLen, val("narrowPeak") into peakCallResults
@@ -195,6 +200,45 @@ process peakCall {
   command += "slopBed -i peakOut/${prefix}_ppois.bdg -g ${chromSizes} -b 0"
   command += " | bedClip stdin ${chromSizes} peakOut/${prefix}.pval.signal.bedgraph\n"
   command += "bedGraphToBigWig peakOut/${prefix}.pval.signal.bedgraph ${chromSizes} peakOut/${prefix}.pval_signal.bw\n"
+  command += "rm -rf peakOut/${prefix}*.bdg peakOut/${prefix}*.bedgraph peakOut/${prefix}*.xls peakOut/${prefix}*.bed"
+}
+
+process peakCallNoInput {
+  input:
+  file chromSizes from chromSizes.val
+  set prefix, file(bam), mark, fragLen, view from bamsNoInput
+
+  output:
+  set prefix, file("peakOut/${prefix}_peaks.narrowPeak"), mark, fragLen, val("narrowPeak") into peakCallResults
+  set prefix, file("peakOut/${prefix}_peaks.broadPeak"), mark, fragLen, val("broadPeak") into peakCallResults
+  set prefix, file("peakOut/${prefix}_peaks.gappedPeak"), mark, fragLen, val("gappedPeak") into peakCallResults
+  set prefix, file("peakOut/${prefix}.pileup_signal.bw"), mark, fragLen, val("pileupSignal") into peakCallResults
+
+  script:
+  //extSize = Math.round((fragLen as int)/2)
+  command = ""
+  // narrow peaks and preliminary signal tracks
+  command += "macs2 callpeak -t ${bam} -c ${control} -n ${prefix} --outdir peakOut"
+  command += " -f BAM -g hs -p 1e-2 --nomodel --extsize=${fragLen}"
+  command += " --keep-dup all -B --SPMR\n"
+  // Broad and Gapped Peaks
+  command += "macs2 callpeak -t ${bam} -c ${control} -n ${prefix} --outdir peakOut"
+  command += " -f BAM -g hs -p 1e-2 --broad --nomodel --extsize=${fragLen}"
+  command += " --keep-dup all\n"
+  // rescale peaks on 10-1000 scale
+  if ( params.rescale ) {
+    ['narrow', 'broad', 'gapped'].collect { type ->
+      rescale_awk_str = 'BEGIN{FS=OFS="\\t";min=1e20;max=-1}'
+      rescale_awk_str += 'NR==FNR&&NF!=0{min>$5?min=$5:min=min;max<$5?max=$5:max=max;next}'
+      rescale_awk_str += 'NF!=0{n=$5;x=10;y=1000;$5=int(((n-min)*(y-x)/(max-min))+x);print}'
+      command += "awk '${rescale_awk_str}' peakOut/${prefix}_peaks.${type}Peak peakOut/${prefix}_peaks.${type}Peak"
+      command += " > peakOut/${prefix}_peaks.${type}Peak_rescaled && mv peakOut/${prefix}_peaks.${type}Peak{_rescaled,}\n"
+    }
+  }
+  // pileup signal tracks
+  command += "slopBed -i peakOut/${prefix}_treat_pileup.bdg -g ${chromSizes} -b 0"
+  command += " | bedClip stdin ${chromSizes} peakOut/${prefix}.pileup_signal.bedgraph\n"
+  command += "bedGraphToBigWig peakOut/${prefix}.pileup_signal.bedgraph ${chromSizes} peakOut/${prefix}.pileup_signal.bw\n"
   command += "rm -rf peakOut/${prefix}*.bdg peakOut/${prefix}*.bedgraph peakOut/${prefix}*.xls peakOut/${prefix}*.bed"
 }
 
