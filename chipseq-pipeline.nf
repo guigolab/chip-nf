@@ -135,20 +135,22 @@ process model {
   command += "Rscript \$(which run_spp.R) -c=${bam} -rf -out=${prefix}.params.out -savp=${prefix}.pdf -p=${cpus}\n"
 }
 
-(bams, results) = modelBams.into(2)
+(bams, results) = modelBams.map { prefix, bam, controlId, paramFile, mark, view ->
+  fragLen = paramFile.text.split()[2].split(',')[0]
+  [prefix, bam, controlId, mark, fragLen, view]
+}.into(2)
 
 // get bams with no control
 bams.tap { allBams }
 .filter {
   it[2] == '-'
 }.map {
-  [it[0], it[1], it[3], it[4]]
+  [it[0], it[1], it[3], it[4], it[5]]
 }.tap { bamsNoInput }
 
 // cross bams and controls
 bamsWithInput = control.cross(allBams) { it[2] }.map { c, t ->
-    fragLen = t[3].text.split()[2].split(',')[0]
-    [t[0], t[1], c[1], t[4], fragLen, t[5]]
+  [t[0], t[1], c[1], t[3], t[4], t[5]]
 }
 
 process peakCallWithInput {
