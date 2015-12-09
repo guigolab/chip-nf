@@ -153,9 +153,11 @@ bamsWithInput = control.cross(allBams) { it[2] }.map { c, t ->
   [t[0], t[1], c[1], t[3], t[4], t[5]]
 }
 
+(chromSizesForInput, chromSizesForNoInput) = chromSizes.into(2)
+
 process peakCallWithInput {
   input:
-  file chromSizes from chromSizes.val
+  file chromSizes from chromSizesForInput.val
   set prefix, file(bam), file(control), mark, fragLen, view from bamsWithInput
 
   output:
@@ -212,7 +214,7 @@ process peakCallWithInput {
 
 process peakCallNoInput {
   input:
-  file chromSizes from chromSizes.val
+  file chromSizes from chromSizesForNoInput.val
   set prefix, file(bam), mark, fragLen, view from bamsNoInput
 
   output:
