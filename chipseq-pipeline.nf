@@ -227,11 +227,11 @@ process peakCallNoInput {
   //extSize = Math.round((fragLen as int)/2)
   command = ""
   // narrow peaks and preliminary signal tracks
-  command += "macs2 callpeak -t ${bam} -c ${control} -n ${prefix} --outdir peakOut"
+  command += "macs2 callpeak -t ${bam} -n ${prefix} --outdir peakOut"
   command += " -f BAM -g hs -p 1e-2 --nomodel --extsize=${fragLen}"
   command += " --keep-dup all -B --SPMR\n"
   // Broad and Gapped Peaks
-  command += "macs2 callpeak -t ${bam} -c ${control} -n ${prefix} --outdir peakOut"
+  command += "macs2 callpeak -t ${bam} -n ${prefix} --outdir peakOut"
   command += " -f BAM -g hs -p 1e-2 --broad --nomodel --extsize=${fragLen}"
   command += " --keep-dup all\n"
   // rescale peaks on 10-1000 scale
