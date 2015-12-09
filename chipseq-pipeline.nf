@@ -162,6 +162,7 @@ process peakCallWithInput {
   set prefix, file("peakOut/${prefix}_peaks.narrowPeak"), mark, fragLen, val("narrowPeak") into peakCallWithInputResults
   set prefix, file("peakOut/${prefix}_peaks.broadPeak"), mark, fragLen, val("broadPeak") into peakCallWithInputResults
   set prefix, file("peakOut/${prefix}_peaks.gappedPeak"), mark, fragLen, val("gappedPeak") into peakCallWithInputResults
+  set prefix, file("peakOut/${prefix}.pileup_signal.bw"), mark, fragLen, val("pileupSignal") into peakCallWithInputResults
   set prefix, file("peakOut/${prefix}.fc_signal.bw"), mark, fragLen, val("fcSignal") into peakCallWithInputResults
   set prefix, file("peakOut/${prefix}.pval_signal.bw"), mark, fragLen, val("pvalueSignal") into peakCallWithInputResults
 
@@ -186,6 +187,10 @@ process peakCallWithInput {
       command += " > peakOut/${prefix}_peaks.${type}Peak_rescaled && mv peakOut/${prefix}_peaks.${type}Peak{_rescaled,}\n"
     }
   }
+  // pileup signal tracks
+  command += "slopBed -i peakOut/${prefix}_treat_pileup.bdg -g ${chromSizes} -b 0"
+  command += " | bedClip stdin ${chromSizes} peakOut/${prefix}.pileup_signal.bedgraph\n"
+  command += "bedGraphToBigWig peakOut/${prefix}.pileup_signal.bedgraph ${chromSizes} peakOut/${prefix}.pileup_signal.bw\n"
   // Fold enrichment signal tracks
   command += "macs2 bdgcmp -t peakOut/${prefix}_treat_pileup.bdg"
 	command += " -c peakOut/${prefix}_control_lambda.bdg --outdir peakOut"
