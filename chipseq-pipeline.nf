@@ -2,23 +2,36 @@ params.mismatches = 2
 params.multimaps = 10
 params.dbFile = 'chipseq-pipeline.db'
 
-chipInput = null
-
-broadMarks = [
-  "H3K27me3",
-  "H3K36me3",
-  "H3K9me3",
-  "H3K4me1"
-]
+//print usage
+if (params.help) {
+    log.info ''
+    log.info 'C H I P - N F ~ ChIP-seq Pipeline'
+    log.info '---------------------------------'
+    log.info 'Run ChIP-seq analyses on a set of data.'
+    log.info ''
+    log.info 'Usage: '
+    log.info '    chipseq-pipeline.nf --index TSV_FILE --genome GENOME_FILE [OPTION]...'
+    log.info ''
+    log.info 'Options:'
+    log.info '    --help                              Show this message and exit.'
+    log.info '    --index TSV_FILE                    Tab separted file containing information about the data.'
+    log.info '    --genome GENOME_FILE                Reference genome file.'
+    log.info '    --mismatches N_MISMATCHES           Allow max N_MISMATCHES error events for a read (Default: 2).'
+    log.info '    --multimaps N_MULTIMAPS             Allow max N_MULTIMAPS mappings for a read (Default: 10).'
+    log.info '    --rescale                           Rescale peak scores to conform to the format supported by the '
+    log.info '                                        UCSC genome browser (score must be <1000) (Default: false).'
+    log.info ''
+    exit 1
+}
 
 pdb = file(params.dbFile)
 pdb.write('')
 
 genome = file(params.genome)
-input = file(params.input)
+index = file(params.index)
 
 fastqs = Channel
-.from(input.readLines())
+.from(index.readLines())
 .map { line ->
   list = line.split()
   mergeId = list[0]
