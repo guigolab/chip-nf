@@ -2,7 +2,7 @@ A [Nextflow](http://www.nextflow.io/) pipeline for processing ChIP-seq data.
 
 ## Installing Nextflow
 
-Follow Nextflow documentation [here](http://www.nextflow.io/docs/latest/getstarted.html#get-started)
+Follow Nextflow documentation [here](http://www.nextflow.io/docs/latest/getstarted.html#get-started).
 
 ## Runing the pipeline
 
@@ -61,7 +61,7 @@ control1   control1_run1    /path/to/control1_run1.fastq.gz   control1    input
 - `broadPeak`, similar to `narrowPeak` (`BED6+3`)
 - `gappedPeak`, both narrow and broad peaks (`BED12+3`)
 
-check [MACS2 output files](https://github.com/taoliu/MACS#output-files) for details
+Check [MACS2 output files](https://github.com/taoliu/MACS#output-files) for details.
 
 
 ## Pipeline db file
@@ -82,10 +82,7 @@ sample2   /path/to/results/sample2_GCCAAT_primary.bam          H3K4me2    200   
 ```
 
 1. merge identifier
-<!-- .element: style="margin-top: 1em;"-->
 2. path
 3. mark/histone
 4. estimated fragment length
 5. data type
-
-------
