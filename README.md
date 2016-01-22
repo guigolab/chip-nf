@@ -4,13 +4,17 @@ A [Nextflow](http://www.nextflow.io/) pipeline for processing ChIP-seq data.
 
 Follow Nextflow documentation [here](http://www.nextflow.io/docs/latest/getstarted.html#get-started).
 
-## Runing the pipeline
+## Running the pipeline
+
+First you need to pull the pipeline using Nextflow:
 
 ```bash
 $ nextflow pull guigolab/chip-nf
 Checking guigolab/chip-nf ...
  downloaded from https://github.com/guigolab/chip-nf.git
 ```
+
+You can then get the pipeline help:
 
 ```bash
 $ nextflow run chip-nf --help
@@ -37,7 +41,9 @@ Options:
 ```
 
 
-## Index file
+## Input
+
+The input data and metadata should be specified using a tab separated file and pass it to the pipeline with the option `--index`. The format of this file is the following:
 
 ```bash
 sample1    sample1_run1     /path/to/sample1_run1.fastq.gz    -           H3
@@ -55,7 +61,9 @@ control1   control1_run1    /path/to/control1_run1.fastq.gz   control1    input
 5. mark/histone or `input` if the line refers to a control
 
 
-## Output data
+## Output
+
+The pipeline will produce the following output data:
 
 - `Alignments`
 - `pileupSignal`, pileup signal tracks
@@ -67,8 +75,7 @@ control1   control1_run1    /path/to/control1_run1.fastq.gz   control1    input
 
 Check [MACS2 output files](https://github.com/taoliu/MACS#output-files) for details.
 
-
-## Pipeline db file
+The output data information is written to a file called `chipseq-pipeline.db` created in the folder from where the pipeline is run. The file has the following format:
 
 ```bash
 sample1   /path/to/results/peakOut/sample1.pileup_signal.bw    H3         255     pileupSignal
