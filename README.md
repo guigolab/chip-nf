@@ -8,6 +8,11 @@ Follow Nextflow documentation [here](http://www.nextflow.io/docs/latest/getstart
 
 ```bash
 $ nextflow pull guigolab/chip-nf
+Checking guigolab/chip-nf ...
+ downloaded from https://github.com/guigolab/chip-nf.git
+```
+
+```bash
 $ nextflow run chip-nf --help
 ```
 
