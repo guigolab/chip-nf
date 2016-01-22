@@ -14,9 +14,8 @@ Checking guigolab/chip-nf ...
 
 ```bash
 $ nextflow run chip-nf --help
-```
 
-```bash
+
 N E X T F L O W  ~  version 0.16.2
 Launching guigolab/chip-nf
 
