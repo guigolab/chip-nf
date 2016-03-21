@@ -1,4 +1,5 @@
 = TODO
+:icons: font
 
 - [ ] remove/make optional gt.filter for multimaps
 - [ ] check if ENCODE BAM files are filtered for unique alignments
