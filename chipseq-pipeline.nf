@@ -1,6 +1,7 @@
 params.mismatches = 2
 params.multimaps = 10
 params.dbFile = 'chipseq-pipeline.db'
+params.genomeSize = 'hs'
 
 //print usage
 if (params.help) {
@@ -186,11 +187,11 @@ process peakCallWithInput {
   command = ""
   // narrow peaks and preliminary signal tracks
   command += "macs2 callpeak -t ${bam} -c ${control} -n ${prefix} --outdir peakOut"
-  command += " -f BAM -g hs -p 1e-2 --nomodel --extsize=${fragLen}"
+  command += " -f BAM -g ${params.genomeSize} -p 1e-2 --nomodel --extsize=${fragLen}"
   command += " --keep-dup all -B --SPMR\n"
   // Broad and Gapped Peaks
   command += "macs2 callpeak -t ${bam} -c ${control} -n ${prefix} --outdir peakOut"
-  command += " -f BAM -g hs -p 1e-2 --broad --nomodel --extsize=${fragLen}"
+  command += " -f BAM -g ${params.genomeSize} -p 1e-2 --broad --nomodel --extsize=${fragLen}"
   command += " --keep-dup all\n"
   // rescale peaks on 10-1000 scale
   if ( params.rescale ) {
@@ -241,11 +242,11 @@ process peakCallNoInput {
   command = ""
   // narrow peaks and preliminary signal tracks
   command += "macs2 callpeak -t ${bam} -n ${prefix} --outdir peakOut"
-  command += " -f BAM -g hs -p 1e-2 --nomodel --extsize=${fragLen}"
+  command += " -f BAM -g ${params.genomeSize} -p 1e-2 --nomodel --extsize=${fragLen}"
   command += " --keep-dup all -B --SPMR\n"
   // Broad and Gapped Peaks
   command += "macs2 callpeak -t ${bam} -n ${prefix} --outdir peakOut"
-  command += " -f BAM -g hs -p 1e-2 --broad --nomodel --extsize=${fragLen}"
+  command += " -f BAM -g ${params.genomeSize} -p 1e-2 --broad --nomodel --extsize=${fragLen}"
   command += " --keep-dup all\n"
   // rescale peaks on 10-1000 scale
   if ( params.rescale ) {
