@@ -17,6 +17,7 @@ if (params.help) {
     log.info '    --help                              Show this message and exit.'
     log.info '    --index TSV_FILE                    Tab separted file containing information about the data.'
     log.info '    --genome GENOME_FILE                Reference genome file.'
+    log.info '    --genome-size GENOME_SIZE           Reference genome size for MACS2 callpeaks. Must be one of MACS2 precomputed sizes: hs, mm, dm, ce. (Default: hs)'
     log.info '    --mismatches N_MISMATCHES           Allow max N_MISMATCHES error events for a read (Default: 2).'
     log.info '    --multimaps N_MULTIMAPS             Allow max N_MULTIMAPS mappings for a read (Default: 10).'
     log.info '    --rescale                           Rescale peak scores to conform to the format supported by the '
