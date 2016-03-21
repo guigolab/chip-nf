@@ -78,7 +78,7 @@ The pipeline will produce the following output data:
 - `Alignments`
 - `pileupSignal`, pileup signal tracks
 - `fcSignal`,  fold enrichment signal tracks
-- `pvalueSignal`, **-log10(p-value)** signal tracks
+- `pvalueSignal`, stem:[-log_10(P)] signal tracks
 - `narrowPeak`, peak locations with peak summit, pvalue and qvalue (`BED6+4`)
 - `broadPeak`, similar to `narrowPeak` (`BED6+3`)
 - `gappedPeak`, both narrow and broad peaks (`BED12+3`)
