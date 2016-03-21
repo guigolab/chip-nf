@@ -1,4 +1,4 @@
-= ChIP-seq analysis pipeline
+= ChIP-nf
 :nextflow: http://www.nextflow.io/
 :nextflow-quickstart: http://www.nextflow.io/docs/latest/getstarted.html#get-started
 :macs2-outfiles: https://github.com/taoliu/MACS#output-files
