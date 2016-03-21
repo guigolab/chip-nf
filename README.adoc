@@ -1,6 +1,7 @@
 :nextflow: http://www.nextflow.io/
 :nextflow-quickstart: http://www.nextflow.io/docs/latest/getstarted.html#get-started
 :macs2-outfiles: https://github.com/taoliu/MACS#output-files
+:pvalue: pass:q[[red]#___-log_10(P)___#]
 
 
 A {nextflow}[Nextflow^] pipeline for processing ChIP-seq data.
@@ -79,7 +80,7 @@ The pipeline will produce the following output data:
 - `Alignments`
 - `pileupSignal`, pileup signal tracks
 - `fcSignal`,  fold enrichment signal tracks
-- `pvalueSignal`, latexmath:[-log_{10}(P)] signal tracks
+- `pvalueSignal`, {pvalue} signal tracks
 - `narrowPeak`, peak locations with peak summit, pvalue and qvalue (`BED6+4`)
 - `broadPeak`, similar to `narrowPeak` (`BED6+3`)
 - `gappedPeak`, both narrow and broad peaks (`BED12+3`)
