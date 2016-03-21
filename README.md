@@ -19,24 +19,25 @@ You can then get the pipeline help:
 ```bash
 $ nextflow run chip-nf --help
 
-
-N E X T F L O W  ~  version 0.16.2
-Launching guigolab/chip-nf
+N E X T F L O W  ~  version 0.17.3
+Launching 'guigolab/chip-nf' - revision: bdc3e2bcc4 [master]
 
 C H I P - N F ~ ChIP-seq Pipeline
-=================================
+---------------------------------
 Run ChIP-seq analyses on a set of data.
 
-Usage:
+Usage: 
     chipseq-pipeline.nf --index TSV_FILE --genome GENOME_FILE [OPTION]...
 
 Options:
     --help                              Show this message and exit.
-    --index TSV_FILE                    Tab separated file containing information about the data.
+    --index TSV_FILE                    Tab separted file containing information about the data.
     --genome GENOME_FILE                Reference genome file.
+    --genome-size GENOME_SIZE           Reference genome size for MACS2 callpeaks. Must be one of
+                                        MACS2 precomputed sizes: hs, mm, dm, ce. (Default: hs)
     --mismatches N_MISMATCHES           Allow max N_MISMATCHES error events for a read (Default: 2).
     --multimaps N_MULTIMAPS             Allow max N_MULTIMAPS mappings for a read (Default: 10).
-    --rescale                           Rescale peak scores to conform to the format supported by the
+    --rescale                           Rescale peak scores to conform to the format supported by the 
                                         UCSC genome browser (score must be <1000) (Default: false).
 ```
 
