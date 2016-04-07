@@ -17,6 +17,7 @@ if (params.help) {
     log.info '    --help                              Show this message and exit.'
     log.info '    --index TSV_FILE                    Tab separted file containing information about the data.'
     log.info '    --genome GENOME_FILE                Reference genome file.'
+    log.info '    --genome-index GENOME_INDEX_ FILE   Reference genome index file.'
     log.info '    --genome-size GENOME_SIZE           Reference genome size for MACS2 callpeaks. Must be one of' 
     log.info '                                        MACS2 precomputed sizes: hs, mm, dm, ce. (Default: hs)'
     log.info '    --mismatches N_MISMATCHES           Allow max N_MISMATCHES error events for a read (Default: 2).'
@@ -56,17 +57,24 @@ fastqs = Channel
   [ mergeId, id, path, controlId, mark, quality ]
 }
 
-process index {
-  input:
-  file genome
+if (!params.genomeIndex) {
 
-  output:
-  file "genome_index.gem" into genomeIndex
+  process index {
 
-  script:
-  command = ""
-  command += "sed 's/ .*//' ${genome} > genome_processed.fa\n"
-  command += "gem-indexer -i genome_processed.fa -o genome_index -T ${task.cpus} -m ${task.memory.toBytes()} && rm genome_processed.fa"
+    input:
+    file genome
+
+    output:
+    file "genome_index.gem" into genomeIndex
+
+    script:
+    command = ""
+    command += "sed 's/ .*//' ${genome} > genome_processed.fa\n"
+    command += "gem-indexer -i genome_processed.fa -o genome_index -T ${task.cpus} -m ${task.memory.toBytes()} && rm genome_processed.fa"
+  }
+
+} else {
+    GenomeIdx = Channel.fromPath(params.genomeIndex)
 }
 
 process fastaIndex {
