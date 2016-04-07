@@ -65,7 +65,7 @@ if (!params.genomeIndex) {
     file genome
 
     output:
-    file "genome_index.gem" into genomeIndex
+    file "genome_index.gem" into GenomeIdx
 
     script:
     command = ""
@@ -91,7 +91,7 @@ process fastaIndex {
 
 process mapping {
   input:
-  file index from genomeIndex.val
+  file index from GenomeIdx.val
   set mergeId, prefix, file(fastq), controlId, mark, quality from fastqs
 
   output:
