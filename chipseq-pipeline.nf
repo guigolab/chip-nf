@@ -320,7 +320,7 @@ process FRiP {
   """
   READS=\$(samtools view -c ${bam})
   RiP=\$(bedtools intersect -abam ${bam} -b ${peak} -f 1.0 | samtools view - -c)
-  echo "scale=2;\$READS/\$RiP" | bc -l
+  echo "scale=2;\$RiP/\$READS" | bc -l
   """
 }
 
