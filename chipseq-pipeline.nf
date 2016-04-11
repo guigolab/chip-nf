@@ -334,7 +334,7 @@ results.map { prefix, bam, control, mark, fragLen, view ->
   [ prefix, bam, mark, fragLen, view ]
 }
 .mix(peakCallResults)
-.cross(NRFBams.mix(FRiPBams).groupTuple())
+.cross(NRFBams.cross(FRiPBams).map { [it[0][0], [it[0][1], it[1][1]]] })
 .map { result, qc ->
     [result, qc[1].collect { it.replace('\n', '') } ].flatten()
 }
