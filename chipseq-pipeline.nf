@@ -330,13 +330,18 @@ process FRiP {
   """
 }
 
+metrics = NRFBams.cross(FRiPBams)
+.map { nrf, frip ->
+  [nrf[0], nrf[1], frip[1]] 
+}
+
+metrics.cross(
 results.map { prefix, bam, control, mark, fragLen, view ->
   [ prefix, bam, mark, fragLen, view ]
 }
-.mix(peakCallResults)
-.cross(NRFBams.cross(FRiPBams).map { [it[0][0], [it[0][1], it[1][1]]] })
-.map { result, qc ->
-    [result, qc[1].collect { it.replace('\n', '') } ].flatten()
+.mix(peakCallResults))
+.map { qc, result ->
+    result + qc[1..-1]
 }
 .collectFile(name: pdb.name, storeDir: pdb.parent, newLine: true) { prefix, path, mark, fragLen, view, nrf, frip ->
     [ prefix, path, mark, fragLen, view, nrf, frip ].join("\t")
