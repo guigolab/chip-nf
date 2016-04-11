@@ -92,18 +92,18 @@ The output data information is written to a file called `chipseq-pipeline.db` cr
 
 [source,bash]
 ----
-sample1   /path/to/results/peakOut/sample1.pileup_signal.bw    H3         255     pileupSignal
-sample1   /path/to/results/peakOut/sample1_peaks.narrowPeak    H3         255     narrowPeak
-sample1   /path/to/results/sample1.bam                         H3         255     Alignments
-sample1   /path/to/results/peakOut/sample1_peaks.gappedPeak    H3         255     gappedPeak
-sample1   /path/to/results/peakOut/sample1_peaks.broadPeak     H3         255     broadPeak
-sample2   /path/to/results/peakOut/sample2_peaks.gappedPeak    H3K4me2    200     gappedPeak
-sample2   /path/to/results/peakOut/sample2.fc_signal.bw        H3K4me2    200     fcSignal
-sample2   /path/to/results/peakOut/sample2.pval_signal.bw      H3K4me2    200     pvalueSignal
-sample2   /path/to/results/peakOut/sample2_peaks.broadPeak     H3K4me2    200     broadPeak
-sample2   /path/to/results/peakOut/sample2.pileup_signal.bw    H3K4me2    200     pileupSignal
-sample2   /path/to/results/peakOut/sample2_peaks.narrowPeak    H3K4me2    200     narrowPeak
-sample2   /path/to/results/sample2_GCCAAT_primary.bam          H3K4me2    200     Alignments
+sample1   /path/to/results/peakOut/sample1.pileup_signal.bw    H3         255     pileupSignal    0.9960   0.4393
+sample1   /path/to/results/peakOut/sample1_peaks.narrowPeak    H3         255     narrowPeak      0.9960   0.4393
+sample1   /path/to/results/sample1.bam                         H3         255     Alignments      0.9960   0.4393
+sample1   /path/to/results/peakOut/sample1_peaks.gappedPeak    H3         255     gappedPeak      0.9960   0.4393
+sample1   /path/to/results/peakOut/sample1_peaks.broadPeak     H3         255     broadPeak       0.9960   0.4393
+sample2   /path/to/results/peakOut/sample2_peaks.gappedPeak    H3K4me2    200     gappedPeak      0.9995   0.7216
+sample2   /path/to/results/peakOut/sample2.fc_signal.bw        H3K4me2    200     fcSignal        0.9995   0.7216
+sample2   /path/to/results/peakOut/sample2.pval_signal.bw      H3K4me2    200     pvalueSignal    0.9995   0.7216
+sample2   /path/to/results/peakOut/sample2_peaks.broadPeak     H3K4me2    200     broadPeak       0.9995   0.7216
+sample2   /path/to/results/peakOut/sample2.pileup_signal.bw    H3K4me2    200     pileupSignal    0.9995   0.7216
+sample2   /path/to/results/peakOut/sample2_peaks.narrowPeak    H3K4me2    200     narrowPeak      0.9995   0.7216
+sample2   /path/to/results/sample2_GCCAAT_primary.bam          H3K4me2    200     Alignments      0.9995   0.7216
 ----
 
 The fields in the file correspond to:
@@ -113,3 +113,5 @@ The fields in the file correspond to:
 3. mark/histone
 4. estimated fragment length
 5. data type
+6. NRF (Nonredundant Fraction)
+7. FRiP (Fraction of Reads in Peaks)
