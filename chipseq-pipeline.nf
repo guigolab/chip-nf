@@ -68,9 +68,10 @@ if (!params.genomeIndex) {
     file "genome_index.gem" into GenomeIdx
 
     script:
-    command = ""
-    command += "sed 's/ .*//' ${genome} > genome_processed.fa\n"
-    command += "gem-indexer -i genome_processed.fa -o genome_index -T ${task.cpus} -m ${task.memory.toBytes()} && rm genome_processed.fa"
+    """
+    sed 's/ .*//' ${genome} > genome_processed.fa
+    gem-indexer -i genome_processed.fa -o genome_index -T ${task.cpus} -m ${task.memory.toBytes()} && rm genome_processed.fa
+    """
   }
 
 } else {
@@ -85,8 +86,9 @@ process fastaIndex {
   file "${genome}.fai" into chromSizes
 
   script:
-  command = ""
-  command += "samtools faidx ${genome}"
+  """
+  samtools faidx ${genome}
+  """
 }
 
 process mapping {
@@ -104,11 +106,12 @@ process mapping {
   view = "Alignments"
   cat = fastq.name.endsWith('.gz') ? 'zcat' : 'cat'
   awk_str = 'BEGIN{OFS=FS="\\t"}$0!~/^@/{split(\"1_2_8_32_64_128\",a,\"_\");for(i in a){if(and($2,a[i])>0){$2=xor($2,a[i])}}}{print}'
-  command = ""
-  command += "${cat} ${fastq} | gem-mapper -I ${index} -q offset-${quality} -T ${cpus} | pigz -p ${cpus} -c > ${prefix}.map.gz\n"
-  command += "gt.filter -i ${prefix}.map.gz --max-levenshtein-error ${params.mismatches} -t ${cpus}| gt.filter --max-maps ${params.multimaps} -t ${cpus} | pigz -p ${cpus} -c > ${prefix}.filter.map.gz\n"
-  command += "pigz -p ${cpus} -dc ${prefix}.filter.map.gz | gem-2-sam -T ${cpus} -I ${index} -q offset-${quality} -l --expect-single-end-reads --read-group ${readGroup} | awk '${awk_str}' | samtools view -@ ${cpus} -Sb - | samtools sort -@ ${cpus} - ${prefix}\n"
-  command += "samtools view -@ ${cpus} -bF256 ${prefix}.bam  > ${prefix}_primary.bam"
+  """
+  ${cat} ${fastq} | gem-mapper -I ${index} -q offset-${quality} -T ${cpus} | pigz -p ${cpus} -c > ${prefix}.map.gz
+  gt.filter -i ${prefix}.map.gz --max-levenshtein-error ${params.mismatches} -t ${cpus}| gt.filter --max-maps ${params.multimaps} -t ${cpus} | pigz -p ${cpus} -c > ${prefix}.filter.map.gz
+  pigz -p ${cpus} -dc ${prefix}.filter.map.gz | gem-2-sam -T ${cpus} -I ${index} -q offset-${quality} -l --expect-single-end-reads --read-group ${readGroup} | awk '${awk_str}' | samtools view -@ ${cpus} -Sb - | samtools sort -@ ${cpus} - ${prefix}
+  samtools view -@ ${cpus} -bF256 ${prefix}.bam  > ${prefix}_primary.bam
+  """
 }
 
 // Merge or rename bam
@@ -131,14 +134,15 @@ process mergeBam {
     script:
     cpus = task.cpus
     prefix = prefix.sort().join(':')
-    command = ""
-    command += """(
-      samtools view -H ${bam} | grep -v "@RG";
-	    for f in ${bam}; do
-		    samtools view -H \$f | grep "@RG";
-	    done) > header.txt \n"""
-    command += "samtools merge -@ ${cpus} -h header.txt ${mergeId}.bam ${bam}"
-
+    """
+    (
+      samtools view -H ${bam} | grep -v '@RG';
+      for f in ${bam}; do 
+        samtools view -H \$f | grep '@RG';
+      done
+    ) > header.txt && \
+    samtools merge -@ ${cpus} -h header.txt ${mergeId}.bam ${bam}
+    """
 }
 
 
@@ -165,8 +169,9 @@ process model {
 
   script:
   cpus = task.cpus
-  command = ""
-  command += "Rscript \$(which run_spp.R) -c=${bam} -rf -out=${prefix}.params.out -savp=${prefix}.pdf -p=${cpus}\n"
+  """
+  Rscript \$(which run_spp.R) -c=${bam} -rf -out=${prefix}.params.out -savp=${prefix}.pdf -p=${cpus}
+  """
 }
 
 (bams, results, bams4NRF, bams4FRiP ) = modelBams.map { prefix, bam, controlId, paramFile, mark, view ->
