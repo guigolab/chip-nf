@@ -304,13 +304,18 @@ process NRF {
 
 (peakCallResults, peakCallResults4FRiP) = peakCallWithInputResults.mix(peakCallNoInputResults).into(2)
 
+input4FRiP = bams4FRiP.mix(peakCallResults4FRiP.filter { prefix, file(peak), controlId, mark, view ->
+  view == 'narrowPeak'
+})
+.groupTuple(by: 0,2,3)
+.map { prefix, files, controlId, mark, views ->
+  [prefix, files[0], files[1]]
+}
+
 process FRiP {
-  when:
-  bamPrefix == peakPrefix && peakView == "narrowPeak"
 
   input:
-  set bamPrefix, file(bam), bamControlId, bamMmark, bamView from bams4FRiP
-  set peakPrefix, file(peak), peakControlId, peakMark, peakView from peakCallResults4FRiP
+  set prefix, file(bam), file(peak), from input4FRiP
 
   output:
   set bamPrefix, stdout into FRiPBams
