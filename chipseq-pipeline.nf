@@ -169,10 +169,10 @@ process model {
   command += "Rscript \$(which run_spp.R) -c=${bam} -rf -out=${prefix}.params.out -savp=${prefix}.pdf -p=${cpus}\n"
 }
 
-(bams, results) = modelBams.map { prefix, bam, controlId, paramFile, mark, view ->
+(bams, results, bams4NRF, bams4FRiP ) = modelBams.map { prefix, bam, controlId, paramFile, mark, view ->
   fragLen = paramFile.text.split()[2].split(',')[0]
   [prefix, bam, controlId, mark, fragLen, view]
-}.into(2)
+}.into(4)
 
 // get bams with no control
 bams.tap { allBams }
@@ -288,11 +288,50 @@ process peakCallNoInput {
   command += "rm -rf peakOut/${prefix}*.bdg peakOut/${prefix}*.bedgraph peakOut/${prefix}*.xls peakOut/${prefix}*.bed"
 }
 
+process NRF {
+  input:
+  set prefix, file(bam), controlId, mark, view from bams4NRF
+
+  output:
+  set prefix, stdout into NRFBams
+
+  script:
+  cpus = task.cpus
+  """
+  NRF.awk ${bam}
+  """
+}
+
+process FRiP {
+  when:
+  peakView == "narrowPeak"
+
+  input:
+  set prefix, file(bam), bamControlId, bamMmark, bamView from bams4FRiP
+  set prefix, file(peak), bamControlId, bamMark, peakView from peakCallResults4FRiP
+
+  output:
+  set prefix, stdout into FRiPBams
+
+  script:
+  cpus = task.cpus
+  """
+  READS=\$(samtools view -c ${bam})
+  RiP=\$(bedtools intersect -abam ${bam} -b ${peak} -f 1.0 | samtools view - -c)
+  echo "scale=2;$READS/$RiP"
+  """
+}
+
+peakCallResults, peakCallResults4FRiP = peakCallWithInputResults.mix(peakCallNoInputResults).into(2)
+
 results.map { prefix, bam, control, mark, fragLen, view ->
   [ prefix, bam, mark, fragLen, view ]
 }
-.mix(peakCallWithInputResults)
-.mix(peakCallNoInputResults)
+.mix(peakCallResults)
+.cross(NRFBams.mix(FRiPBams).groupTuple())
+.map { result, qc ->
+    [result, qc[1]].flatten()
+}
 .collectFile(name: pdb.name, storeDir: pdb.parent, newLine: true) { prefix, path, mark, fragLen, view ->
     [ prefix, path, mark, fragLen, view ].join("\t")
 }
