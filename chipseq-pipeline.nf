@@ -319,7 +319,7 @@ process FRiP {
   set prefix, file(bam), file(peak) from input4FRiP
 
   output:
-  set bamPrefix, stdout into FRiPBams
+  set prefix, stdout into FRiPBams
 
   script:
   cpus = task.cpus
