@@ -302,6 +302,8 @@ process NRF {
   """
 }
 
+(peakCallResults, peakCallResults4FRiP) = peakCallWithInputResults.mix(peakCallNoInputResults).into(2)
+
 process FRiP {
   when:
   peakView == "narrowPeak"
@@ -321,8 +323,6 @@ process FRiP {
   echo "scale=2;$READS/$RiP"
   """
 }
-
-(peakCallResults, peakCallResults4FRiP) = peakCallWithInputResults.mix(peakCallNoInputResults).into(2)
 
 results.map { prefix, bam, control, mark, fragLen, view ->
   [ prefix, bam, mark, fragLen, view ]
