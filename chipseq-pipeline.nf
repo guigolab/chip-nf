@@ -298,7 +298,7 @@ process NRF {
   script:
   cpus = task.cpus
   """
-  NRF.awk ${bam}
+  samtools view -@${cpus} ${bam} | NRF.awk 
   """
 }
 
