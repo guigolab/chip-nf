@@ -304,10 +304,11 @@ process NRF {
 
 (peakCallResults, peakCallResults4FRiP) = peakCallWithInputResults.mix(peakCallNoInputResults).into(2)
 
-input4FRiP = bams4FRiP.mix(peakCallResults4FRiP.filter { prefix, file(peak), controlId, mark, view ->
-  view == 'narrowPeak'
-})
-.groupTuple(by: 0,2,3)
+input4FRiP = bams4FRiP.map { prefix, bam, controlId, mark, fragLen, view ->
+    [prefix, bam, mark, fragLen, view]
+}.mix(peakCallResults4FRiP.filter { it ->
+  it[4] == 'narrowPeak'
+}).groupTuple(by: [0,2,3])
 .map { prefix, files, controlId, mark, views ->
   [prefix, files[0], files[1]]
 }
@@ -315,7 +316,7 @@ input4FRiP = bams4FRiP.mix(peakCallResults4FRiP.filter { prefix, file(peak), con
 process FRiP {
 
   input:
-  set prefix, file(bam), file(peak), from input4FRiP
+  set prefix, file(bam), file(peak) from input4FRiP
 
   output:
   set bamPrefix, stdout into FRiPBams
@@ -325,7 +326,7 @@ process FRiP {
   """
   READS=\$(samtools view -c ${bam})
   RiP=\$(bedtools intersect -abam ${bam} -b ${peak} -f 1.0 | samtools view - -c)
-  echo "scale=2;\$RiP/\$READS" | bc -l
+  echo "\$RiP/\$READS" | bc -l | awk '{printf "%.4f", \$0}'
   """
 }
 
@@ -335,10 +336,10 @@ results.map { prefix, bam, control, mark, fragLen, view ->
 .mix(peakCallResults)
 .cross(NRFBams.mix(FRiPBams).groupTuple())
 .map { result, qc ->
-    [result, qc[1]].flatten()
+    [result, qc[1].collect { it.replace('\n', '') } ].flatten()
 }
-.collectFile(name: pdb.name, storeDir: pdb.parent, newLine: true) { prefix, path, mark, fragLen, view ->
-    [ prefix, path, mark, fragLen, view ].join("\t")
+.collectFile(name: pdb.name, storeDir: pdb.parent, newLine: true) { prefix, path, mark, fragLen, view, nrf, frip ->
+    [ prefix, path, mark, fragLen, view, nrf, frip ].join("\t")
 }
 .subscribe {
     log.info ""

@@ -11,5 +11,5 @@
 	}
 }
 END {
-	print length(upos)/uniq
+	printf "%.4f", length(upos)/uniq
 }
