@@ -306,14 +306,14 @@ process NRF {
 
 process FRiP {
   when:
-  peakView == "narrowPeak"
+  bamPrefix == peakPrefix && peakView == "narrowPeak"
 
   input:
-  set prefix, file(bam), bamControlId, bamMmark, bamView from bams4FRiP
-  set prefix, file(peak), bamControlId, bamMark, peakView from peakCallResults4FRiP
+  set bamPrefix, file(bam), bamControlId, bamMmark, bamView from bams4FRiP
+  set peakPrefix, file(peak), peakControlId, peakMark, peakView from peakCallResults4FRiP
 
   output:
-  set prefix, stdout into FRiPBams
+  set bamPrefix, stdout into FRiPBams
 
   script:
   cpus = task.cpus
