@@ -189,7 +189,7 @@ bams.tap { allBams }
 
 // cross bams and controls
 bamsWithInput = control.filter {
-  it[2] == '-'
+  it[2] != '-'
 }
 .cross(allBams) { it[2] }.map { c, t ->
   [t[0], t[1], c[1], t[3], t[4], t[5]]
