@@ -329,7 +329,7 @@ process FRiP {
   script:
   cpus = task.cpus
   """
-  READS=\$(samtools view -c ${bam})
+  READS=\$(samtools view -F 260 -c ${bam})
   RiP=\$(bedtools intersect -abam ${bam} -b ${peak} -f 1.0 | samtools view - -c)
   echo "\$RiP/\$READS" | bc -l | awk '{printf "%.4f", \$0}'
   """
