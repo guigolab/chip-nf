@@ -70,7 +70,7 @@ if (!params.genomeIndex) {
     script:
     """
     sed 's/ .*//' ${genome} > genome_processed.fa
-    gem-indexer -i genome_processed.fa -o genome_index -T ${task.cpus} -m ${task.memory.toBytes()} && rm genome_processed.fa
+    gem-indexer -i genome_processed.fa -o genome_index -T ${task.cpus} -m ${task.memory?.toBytes() ?: 'unlimited'} && rm genome_processed.fa
     """
   }
 
