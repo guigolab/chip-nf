@@ -244,7 +244,7 @@ process peakCallWithInput {
   command += "bedGraphToBigWig peakOut/${prefix}.fc.signal.bedgraph ${chromSizes} peakOut/${prefix}.fc_signal.bw\n"
   // -log10(p-value) signal tracks
   command += "bamReads=\$(samtools view -c ${bam}) && controlReads=\$(samtools view -c ${control})"
-  command += " && sval=\$(bc <<< \$((bamReads<controlReads?bamReads:controlReads))/1000000)\n"
+  command += " && sval=\$(bc -l <<< \$((bamReads<controlReads?bamReads:controlReads))/1000000)\n"
   command += "macs2 bdgcmp -t peakOut/${prefix}_treat_pileup.bdg"
 	command += " -c peakOut/${prefix}_control_lambda.bdg --outdir peakOut"
   command += " -o ${prefix}_ppois.bdg -m ppois -S \$sval\n"
