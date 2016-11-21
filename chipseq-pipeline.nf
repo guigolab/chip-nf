@@ -141,7 +141,7 @@ process mergeBam {
         samtools view -H \$f | grep '@RG';
       done
     ) > header.txt && \
-    samtools merge -@ ${cpus} -h header.txt ${mergeId}.bam ${bam}
+    samtools merge -@ ${cpus} -h header.txt ${mergeId}_primary.bam ${bam}
     """
 }
 
