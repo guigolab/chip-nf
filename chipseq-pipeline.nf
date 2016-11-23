@@ -365,7 +365,7 @@ process NRF {
         def view = (f.name =~ /([^\.]+Peak|[^.]+signal)/)[0][1].tokenize('_').indexed().collect { i, it->
           i == 0 ? it : it.toLowerCase().capitalize()
         }.join("")
-        peaks << [ prefix, files, mark, fragLen, view ]
+        peaks << [ prefix, f, mark, fragLen, view ]
     }
     peaks
 }.into(2)
