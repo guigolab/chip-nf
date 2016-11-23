@@ -283,7 +283,7 @@ process peakCall {
   | bedClip stdin ${chromSizes} peakOut/${prefix}.pileup_signal.bedgraph
   bedGraphToBigWig peakOut/${prefix}.pileup_signal.bedgraph ${chromSizes} peakOut/${prefix}.pileup_signal.bw
   ${ control.exists() ? 
-    "# Fold enrichment signal tracks
+    """# Fold enrichment signal tracks
     macs2 bdgcmp -t peakOut/${prefix}_treat_pileup.bdg \
   	             -c peakOut/${prefix}_control_lambda.bdg --outdir peakOut \
                  -o ${prefix}_FE.bdg -m FE
@@ -298,7 +298,7 @@ process peakCall {
                  -o ${prefix}_ppois.bdg -m ppois -S \$sval
     slopBed -i peakOut/${prefix}_ppois.bdg -g ${chromSizes} -b 0 \
      | bedClip stdin ${chromSizes} peakOut/${prefix}.pval.signal.bedgraph
-    bedGraphToBigWig peakOut/${prefix}.pval.signal.bedgraph ${chromSizes} peakOut/${prefix}.pval_signal.bw"
+    bedGraphToBigWig peakOut/${prefix}.pval.signal.bedgraph ${chromSizes} peakOut/${prefix}.pval_signal.bw"""
     : ""
   }
   rm -rf peakOut/${prefix}*.bdg peakOut/${prefix}*.bedgraph peakOut/${prefix}*.xls peakOut/${prefix}*.bed
