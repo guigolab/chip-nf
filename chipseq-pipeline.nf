@@ -128,7 +128,7 @@ process mapping {
             -t ${cpus}\
   | gt.filter --max-maps ${params.multimaps} \
               -t ${cpus} \
-  | pigz -p ${cpus} 
+  | pigz -p ${cpus} \
          -c \
   > ${prefix}.filter.map.gz
   pigz -p ${cpus} \
