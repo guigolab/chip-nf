@@ -250,7 +250,7 @@ process peakCall {
   set prefix, file(bam), file(control), mark, fragLen, view from bamsWithInput
 
   output:
-  set prefix, file("${prefix}*{Peak,bw}"), mark, fragLen into peakCallWithInputResults
+  set prefix, file("peakOut/${prefix}*{Peak,bw}"), mark, fragLen into peakCallWithInputResults
   // set prefix, file("peakOut/${prefix}_peaks.narrowPeak"), mark, fragLen, val("narrowPeak") into peakCallWithInputResults
   // set prefix, file("peakOut/${prefix}_peaks.broadPeak"), mark, fragLen, val("broadPeak") into peakCallWithInputResults
   // set prefix, file("peakOut/${prefix}_peaks.gappedPeak"), mark, fragLen, val("gappedPeak") into peakCallWithInputResults
