@@ -20,6 +20,7 @@ if (params.help) {
     log.info '    --genome-index GENOME_INDEX_ FILE   Reference genome index file.'
     log.info '    --genome-size GENOME_SIZE           Reference genome size for MACS2 callpeaks. Must be one of' 
     log.info '                                        MACS2 precomputed sizes: hs, mm, dm, ce. (Default: hs)'
+    log.info '    --fragment-length LENGTH            Use a fixed fragment length
     log.info '    --mismatches N_MISMATCHES           Allow max N_MISMATCHES error events for a read (Default: 2).'
     log.info '    --multimaps N_MULTIMAPS             Allow max N_MULTIMAPS mappings for a read (Default: 10).'
     log.info '    --rescale                           Rescale peak scores to conform to the format supported by the '
@@ -175,7 +176,7 @@ process model {
 }
 
 (bams, results, bams4NRF, bams4FRiP ) = modelBams.map { prefix, bam, controlId, paramFile, mark, view ->
-  fragLen = paramFile.text.split()[2].split(',')[0]
+  fragLen = params.fragmentLength ?: paramFile.text.split()[2].split(',')[0]
   [prefix, bam, controlId, mark, fragLen, view]
 }.into(4)
 
