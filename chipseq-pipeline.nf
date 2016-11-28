@@ -354,7 +354,7 @@ process feSignalTracks {
   """
 }
 
-preocess pvalSignalTrack{
+process pvalSignalTrack {
 
   input:
   file chromSizes from chromSizesPvalSignalTracks.val
