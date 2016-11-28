@@ -92,7 +92,7 @@ process fastaIndex {
   file genome
 
   output:
-  file "${genome}.fai" into chromSizes
+  file "${genome}.fai" into chromSizesNarrowPeakCall, chromSizesBroadPeakCal, chromSizesPileupSignalTracks, chromSizesFeSignalTracks, chromSizesPvalSignalTracks
 
   script:
   """
@@ -221,10 +221,10 @@ process model {
   """
 }
 
-(bams, results, bams4NRF, bams4FRiP ) = modelBams.map { prefix, bam, controlId, paramFile, mark, view ->
+modelBams.map { prefix, bam, controlId, paramFile, mark, view ->
   fragLen = paramFile.text.split()[2].split(',')[0]
   [prefix, bam, controlId, mark, fragLen, view]
-}.into(4)
+}.into({bams, results, bams4NRF, bams4FRiP }
 
 // get bams with no control
 bams.tap { allBams }
@@ -242,22 +242,16 @@ bamsWithInput = control.filter {
   [t[0], t[1], c[1], t[3], t[4], t[5]]
 }
 
-(chromSizesForInput, chromSizesForNoInput) = chromSizes.into(2)
-
-process peakCall {
+process narrowPeakCall {
+  
   input:
-  file chromSizes from chromSizesForInput.val
+  file chromSizes from chromSizesNarrowPeakCall.val
   set prefix, file(bam), file(control), mark, fragLen, view from bamsWithInput
 
   output:
-  set prefix, file("peakOut/${prefix}*{Peak,bw}"), mark, fragLen into peakCallWithInputResults
-  // set prefix, file("peakOut/${prefix}_peaks.narrowPeak"), mark, fragLen, val("narrowPeak") into peakCallWithInputResults
-  // set prefix, file("peakOut/${prefix}_peaks.broadPeak"), mark, fragLen, val("broadPeak") into peakCallWithInputResults
-  // set prefix, file("peakOut/${prefix}_peaks.gappedPeak"), mark, fragLen, val("gappedPeak") into peakCallWithInputResults
-  // set prefix, file("peakOut/${prefix}.pileup_signal.bw"), mark, fragLen, val("pileupSignal") into peakCallWithInputResults
-  // set prefix, file("peakOut/${prefix}.fc_signal.bw"), mark, fragLen, val("fcSignal") into peakCallWithInputResults
-  // set prefix, file("peakOut/${prefix}.pval_signal.bw"), mark, fragLen, val("pvalueSignal") into peakCallWithInputResults
-
+  set prefix, file("peakOut/${prefix}_peaks.narrowPeak"), mark, fragLen, val("narrowPeak") into narrowPeakFiles, narrowPeakFiles4FRiP
+  set prefix, file("peakOut/${prefix}.pileup_signal.bdg"), mark, fragLen, val("pileupBedGraph") into pileupBedGraphFiles
+  
   script:
   //extSize = Math.round((fragLen as int)/2)
   """
@@ -265,84 +259,123 @@ process peakCall {
   macs2 callpeak -t ${bam} ${ control.name != '-' ? "-c ${control}" : "" } -n ${prefix} --outdir peakOut \
                  -f BAM -g ${params.genomeSize} -p 1e-2 --nomodel --extsize=${fragLen} \
                  --keep-dup all -B --SPMR
+  """
+}
+
+process broadPeakCall {
+  
+  input:
+  file chromSizes from chromSizesBroadPeakCal.val
+  set prefix, file(bam), file(control), mark, fragLen, view from bamsWithInput
+
+  output:
+  set prefix, file("peakOut/${prefix}_peaks.broadPeak"), mark, fragLen, val("broadPeak") into breadPeakFiles
+  set prefix, file("peakOut/${prefix}_peaks.gappedPeak"), mark, fragLen, val("gappedPeak") into gappedPeakFiles
+
+  script:
+  //extSize = Math.round((fragLen as int)/2)
+  """
   # Broad and Gapped Peaks
   macs2 callpeak -t ${bam} ${ control.name != '-' ? "-c ${control}" : "" } -n ${prefix} --outdir peakOut \
                  -f BAM -g ${params.genomeSize} -p 1e-2 --broad --nomodel --extsize=${fragLen} \
                  --keep-dup all
-  # rescale peaks on 10-1000 scale
-  ${ params.rescale ? 
-    ['narrow', 'broad', 'gapped'].collect { type ->
-      def rescale_awk_str = 'BEGIN{FS=OFS="\\t";min=1e20;max=-1}'
-      rescale_awk_str += 'NR==FNR&&NF!=0{min>$5?min=$5:min=min;max<$5?max=$5:max=max;next}'
-      rescale_awk_str += 'NF!=0{n=$5;x=10;y=1000;$5=int(((n-min)*(y-x)/(max-min))+x);print}'
-      "awk '${rescale_awk_str}' peakOut/${prefix}_peaks.${type}Peak peakOut/${prefix}_peaks.${type}Peak > peakOut/${prefix}_peaks.${type}Peak_rescaled && mv peakOut/${prefix}_peaks.${type}Peak{_rescaled,}"
-    } : ""
-  }
-  # pileup signal tracks
-  slopBed -i peakOut/${prefix}_treat_pileup.bdg -g ${chromSizes} -b 0 \
-  | bedClip stdin ${chromSizes} peakOut/${prefix}.pileup_signal.bedgraph
-  bedGraphToBigWig peakOut/${prefix}.pileup_signal.bedgraph ${chromSizes} peakOut/${prefix}.pileup_signal.bw
-  ${ control.name != '-' ? 
-    """# Fold enrichment signal tracks
-    macs2 bdgcmp -t peakOut/${prefix}_treat_pileup.bdg \
-  	             -c peakOut/${prefix}_control_lambda.bdg --outdir peakOut \
-                 -o ${prefix}_FE.bdg -m FE
-    slopBed -i peakOut/${prefix}_FE.bdg -g ${chromSizes} -b 0 \
-     | bedClip stdin ${chromSizes} peakOut/${prefix}.fc.signal.bedgraph
-    bedGraphToBigWig peakOut/${prefix}.fc.signal.bedgraph ${chromSizes} peakOut/${prefix}.fc_signal.bw
-    # -log10(p-value) signal tracks
-    bamReads=\$(samtools view -c ${bam}) && controlReads=\$(samtools view -c ${control}) \
-     && sval=\$(bc -l <<< \$((bamReads<controlReads?bamReads:controlReads))/1000000)
-    macs2 bdgcmp -t peakOut/${prefix}_treat_pileup.bdg \
-  	             -c peakOut/${prefix}_control_lambda.bdg --outdir peakOut \
-                 -o ${prefix}_ppois.bdg -m ppois -S \$sval
-    slopBed -i peakOut/${prefix}_ppois.bdg -g ${chromSizes} -b 0 \
-     | bedClip stdin ${chromSizes} peakOut/${prefix}.pval.signal.bedgraph
-    bedGraphToBigWig peakOut/${prefix}.pval.signal.bedgraph ${chromSizes} peakOut/${prefix}.pval_signal.bw"""
-    : ""
-  }
-  rm -rf peakOut/${prefix}*.bdg peakOut/${prefix}*.bedgraph peakOut/${prefix}*.xls peakOut/${prefix}*.bed
   """
 }
 
-// process peakCallNoInput {
-//   input:
-//   file chromSizes from chromSizesForNoInput.val
-//   set prefix, file(bam), mark, fragLen, view from bamsNoInput
+// Collect peak files
+narrowPeakFiles
+  .mix( breadPeakFiles )
+  .mix( gappedPeakFiles )
+.into{ allPeakFiles; peakCallResults; peakCallResults4FRiP }
 
-//   output:
-//   set prefix, file("peakOut/${prefix}_peaks.narrowPeak"), mark, fragLen, val("narrowPeak") into peakCallNoInputResults
-//   set prefix, file("peakOut/${prefix}_peaks.broadPeak"), mark, fragLen, val("broadPeak") into peakCallNoInputResults
-//   set prefix, file("peakOut/${prefix}_peaks.gappedPeak"), mark, fragLen, val("gappedPeak") into peakCallNoInputResults
-//   set prefix, file("peakOut/${prefix}.pileup_signal.bw"), mark, fragLen, val("pileupSignal") into peakCallNoInputResults
+process rescalePeaks {
+ 
+  when:
+  params.rescale
 
-//   script:
-//   //extSize = Math.round((fragLen as int)/2)
-//   command = ""
-//   // narrow peaks and preliminary signal tracks
-//   command += "macs2 callpeak -t ${bam} -n ${prefix} --outdir peakOut"
-//   command += " -f BAM -g ${params.genomeSize} -p 1e-2 --nomodel --extsize=${fragLen}"
-//   command += " --keep-dup all -B --SPMR\n"
-//   // Broad and Gapped Peaks
-//   command += "macs2 callpeak -t ${bam} -n ${prefix} --outdir peakOut"
-//   command += " -f BAM -g ${params.genomeSize} -p 1e-2 --broad --nomodel --extsize=${fragLen}"
-//   command += " --keep-dup all\n"
-//   // rescale peaks on 10-1000 scale
-//   if ( params.rescale ) {
-//     ['narrow', 'broad', 'gapped'].collect { type ->
-//       rescale_awk_str = 'BEGIN{FS=OFS="\\t";min=1e20;max=-1}'
-//       rescale_awk_str += 'NR==FNR&&NF!=0{min>$5?min=$5:min=min;max<$5?max=$5:max=max;next}'
-//       rescale_awk_str += 'NF!=0{n=$5;x=10;y=1000;$5=int(((n-min)*(y-x)/(max-min))+x);print}'
-//       command += "awk '${rescale_awk_str}' peakOut/${prefix}_peaks.${type}Peak peakOut/${prefix}_peaks.${type}Peak"
-//       command += " > peakOut/${prefix}_peaks.${type}Peak_rescaled && mv peakOut/${prefix}_peaks.${type}Peak{_rescaled,}\n"
-//     }
-//   }
-//   // pileup signal tracks
-//   command += "slopBed -i peakOut/${prefix}_treat_pileup.bdg -g ${chromSizes} -b 0"
-//   command += " | bedClip stdin ${chromSizes} peakOut/${prefix}.pileup_signal.bedgraph\n"
-//   command += "bedGraphToBigWig peakOut/${prefix}.pileup_signal.bedgraph ${chromSizes} peakOut/${prefix}.pileup_signal.bw\n"
-//   command += "rm -rf peakOut/${prefix}*.bdg peakOut/${prefix}*.bedgraph peakOut/${prefix}*.xls peakOut/${prefix}*.bed"
-// }
+  input:
+  set prefix, file(peaks), mark, fragLen, view from allPeakFiles
+
+  output:
+  set prefix, file("${peaks.name}.rescaled"), mark, fragLen, val("rescaled${view.capitalize()}") from allPeakFiles
+
+  output:
+
+
+  script:
+  def rescale_awk_str = 'BEGIN{FS=OFS="\\t";min=1e20;max=-1}'
+  rescale_awk_str += 'NR==FNR&&NF!=0{min>$5?min=$5:min=min;max<$5?max=$5:max=max;next}'
+  rescale_awk_str += 'NF!=0{n=$5;x=10;y=1000;$5=int(((n-min)*(y-x)/(max-min))+x);print}'
+  """
+  # rescale peaks on 10-1000 scale
+  awk '${rescale_awk_str}' ${peaks} > ${peaks.name}.rescaled
+  """
+}
+
+process pileupSignalTracks {
+
+  input:
+  file chromSizes from chromSizesPileupSignalTracks.val
+  prefix, file(bedGraph), mark, fragLen, view from pileupBedGraphFiles
+
+  output:
+  set prefix, file("peakOut/${prefix}.pileup_signal.bw"), mark, fragLen, val("pileupSignal") into pileupSignalFiles
+  
+  script:
+  """
+  # pileup signal tracks
+  slopBed -i ${bedGraph} -g ${chromSizes} -b 0 \
+  | bedClip stdin ${chromSizes} ${prefix}.pileup_signal.bedgraph
+  bedGraphToBigWig ${prefix}.pileup_signal.bedgraph ${chromSizes} ${prefix}.pileup_signal.bw
+  """
+}
+
+process feSignalTracks {
+  
+  when:
+  control.name != '-'
+
+  input:
+  file chromSizes from chromSizesFeSignalTracks.val
+  prefix, file(bedGraph), mark, fragLen, view from pileupBedGraphFiles
+
+  output:
+  set prefix, file("peakOut/${prefix}.fc_signal.bw"), mark, fragLen, val("fcSignal") into feSignalFiles
+
+  script:
+  """
+  # Fold enrichment signal tracks
+  macs2 bdgcmp -t peakOut/${prefix}_treat_pileup.bdg \
+               -c peakOut/${prefix}_control_lambda.bdg --outdir . \
+               -o ${prefix}_FE.bdg -m FE
+  slopBed -i ${prefix}_FE.bdg -g ${chromSizes} -b 0 \
+  | bedClip stdin ${chromSizes} ${prefix}.fc.signal.bedgraph
+  bedGraphToBigWig ${prefix}.fc.signal.bedgraph ${chromSizes} ${prefix}.fc_signal.bw
+  """
+}
+
+preocess pvalSignalTrack{
+
+  input:
+  file chromSizes from chromSizesPvalSignalTracks.val
+  prefix, file(bedGraph), mark, fragLen, view from pileupBedGraphFiles
+ 
+  output:
+  set prefix, file("peakOut/${prefix}.pval_signal.bw"), mark, fragLen, val("pvalueSignal") into pvalSignalFiles
+  
+  script:
+  """
+  # -log10(p-value) signal tracks
+  bamReads=\$(samtools view -c ${bam}) && controlReads=\$(samtools view -c ${control}) \
+   && sval=\$(bc -l <<< \$((bamReads<controlReads?bamReads:controlReads))/1000000)
+  macs2 bdgcmp -t peakOut/${prefix}_treat_pileup.bdg \
+               -c peakOut/${prefix}_control_lambda.bdg --outdir peakOut \
+               -o ${prefix}_ppois.bdg -m ppois -S \$sval
+  slopBed -i peakOut/${prefix}_ppois.bdg -g ${chromSizes} -b 0 \
+  | bedClip stdin ${chromSizes} peakOut/${prefix}.pval.signal.bedgraph
+  bedGraphToBigWig peakOut/${prefix}.pval.signal.bedgraph ${chromSizes} peakOut/${prefix}.pval_signal.bw
+  """
+}
 
 process NRF {
   input:
@@ -358,23 +391,9 @@ process NRF {
   """
 }
 
-(peakCallResults, peakCallResults4FRiP) = peakCallWithInputResults
-.flatMap { prefix, files, mark, fragLen ->
-   def peaks = []
-   files.each { f ->
-        def view = (f.name =~ /([^\.]+Peak|[^.]+signal)/)[0][1].tokenize('_').indexed().collect { i, it->
-          i == 0 ? it : it.toLowerCase().capitalize()
-        }.join("")
-        peaks << [ prefix, f, mark, fragLen, view ]
-    }
-    peaks
-}.into(2)
-
 input4FRiP = bams4FRiP.map { prefix, bam, controlId, mark, fragLen, view ->
     [prefix, bam, mark, fragLen, view]
-}.mix(peakCallResults4FRiP.filter { it ->
-  it[4] == 'narrowPeak'
-}).groupTuple(by: [0,2,3])
+}.mix(narrowPeakFiles4FRiP).groupTuple(by: [0,2,3])
 .map { prefix, files, controlId, mark, views ->
   [prefix, files[0], files[1]]
 }
@@ -402,11 +421,11 @@ metrics = NRFBams.cross(FRiPBams)
 }
 
 metrics.cross(
-results.map { prefix, bam, control, mark, fragLen, view ->
-  [ prefix, bam, mark, fragLen, view ]
-}
-.mix(peakCallResults))
-.map { qc, result ->
+  results.map { prefix, bam, control, mark, fragLen, view ->
+    [ prefix, bam, mark, fragLen, view ]
+  }
+  .mix(peakCallResults, pileupSignalFiles, feSignalFiles, pvalSignalFiles)
+).map { qc, result ->
     result + qc[1..-1]
 }
 .collectFile(name: pdb.name, storeDir: pdb.parent, newLine: true) { prefix, path, mark, fragLen, view, nrf, frip ->
