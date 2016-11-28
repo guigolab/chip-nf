@@ -235,22 +235,22 @@ bams.tap { allBams }
 }.tap { bamsNoInput }
 
 // cross bams and controls
-bamsWithInput = control.filter {
+control.filter {
   it[2] != '-'
 }
 .cross(allBams) { it[2] }.map { c, t ->
   [t[0], t[1], c[1], t[3], t[4], t[5]]
-}
+}.into { bamsWithInputNarrowPeakCall, bamsWithInputBroadPeakCall }
 
 process narrowPeakCall {
   
   input:
   file chromSizes from chromSizesNarrowPeakCall.val
-  set prefix, file(bam), file(control), mark, fragLen, view from bamsWithInput
+  set prefix, file(bam), file(control), mark, fragLen, view from bamsWithInputNarrowPeakCall
 
   output:
   set prefix, file("peakOut/${prefix}_peaks.narrowPeak"), mark, fragLen, val("narrowPeak") into narrowPeakFiles, narrowPeakFiles4FRiP
-  set prefix, file("peakOut/${prefix}.pileup_signal.bdg"), mark, fragLen, val("pileupBedGraph") into pileupBedGraphFiles
+  set prefix, file("peakOut/${prefix}.pileup_signal.bdg"), mark, fragLen, val("pileupBedGraph") into pileupBedGraphFilesPileupSignalTracks, pileupBedGraphFilesFeSignalTracks, pileupBedGraphFilesPvalSignalTracks
   
   script:
   //extSize = Math.round((fragLen as int)/2)
@@ -266,7 +266,7 @@ process broadPeakCall {
   
   input:
   file chromSizes from chromSizesBroadPeakCal.val
-  set prefix, file(bam), file(control), mark, fragLen, view from bamsWithInput
+  set prefix, file(bam), file(control), mark, fragLen, view from bamsWithInputBroadPeakCall
 
   output:
   set prefix, file("peakOut/${prefix}_peaks.broadPeak"), mark, fragLen, val("broadPeak") into breadPeakFiles
@@ -316,7 +316,7 @@ process pileupSignalTracks {
 
   input:
   file chromSizes from chromSizesPileupSignalTracks.val
-  set prefix, file(bedGraph), mark, fragLen, view from pileupBedGraphFiles
+  set prefix, file(bedGraph), mark, fragLen, view from pileupBedGraphFilesPileupSignalTracks
 
   output:
   set prefix, file("peakOut/${prefix}.pileup_signal.bw"), mark, fragLen, val("pileupSignal") into pileupSignalFiles
@@ -337,7 +337,7 @@ process feSignalTracks {
 
   input:
   file chromSizes from chromSizesFeSignalTracks.val
-  set prefix, file(bedGraph), mark, fragLen, view from pileupBedGraphFiles
+  set prefix, file(bedGraph), mark, fragLen, view from pileupBedGraphFilesFeSignalTracks
 
   output:
   set prefix, file("peakOut/${prefix}.fc_signal.bw"), mark, fragLen, val("fcSignal") into feSignalFiles
@@ -358,7 +358,7 @@ preocess pvalSignalTrack{
 
   input:
   file chromSizes from chromSizesPvalSignalTracks.val
-  set prefix, file(bedGraph), mark, fragLen, view from pileupBedGraphFiles
+  set prefix, file(bedGraph), mark, fragLen, view from pileupBedGraphFilesPvalSignalTracks
  
   output:
   set prefix, file("peakOut/${prefix}.pval_signal.bw"), mark, fragLen, val("pvalueSignal") into pvalSignalFiles
