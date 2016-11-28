@@ -240,7 +240,7 @@ control.filter {
 }
 .cross(allBams) { it[2] }.map { c, t ->
   [t[0], t[1], c[1], t[3], t[4], t[5]]
-}.into { bamsWithInputNarrowPeakCall, bamsWithInputBroadPeakCall }
+}.into { bamsWithInputNarrowPeakCall; bamsWithInputBroadPeakCall }
 
 process narrowPeakCall {
   
