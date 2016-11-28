@@ -250,7 +250,7 @@ process narrowPeakCall {
 
   output:
   set prefix, file("peakOut/${prefix}_peaks.narrowPeak"), mark, fragLen, val("narrowPeak") into narrowPeakFiles, narrowPeakFiles4FRiP
-  set prefix, file("peakOut/${prefix}.pileup_signal.bdg"), mark, fragLen, val("pileupBedGraph") into pileupBedGraphFilesPileupSignalTracks, pileupBedGraphFilesFeSignalTracks, pileupBedGraphFilesPvalSignalTracks
+  set prefix, file("peakOut/${prefix}.pileup.bdg"), mark, fragLen, val("pileupBedGraph") into pileupBedGraphFilesPileupSignalTracks, pileupBedGraphFilesFeSignalTracks, pileupBedGraphFilesPvalSignalTracks
   
   script:
   //extSize = Math.round((fragLen as int)/2)
