@@ -224,7 +224,7 @@ process model {
 modelBams.map { prefix, bam, controlId, paramFile, mark, view ->
   fragLen = paramFile.text.split()[2].split(',')[0]
   [prefix, bam, controlId, mark, fragLen, view]
-}.into({bams, results, bams4NRF, bams4FRiP }
+}.into{ bams, results, bams4NRF, bams4FRiP }
 
 // get bams with no control
 bams.tap { allBams }
