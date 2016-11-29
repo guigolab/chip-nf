@@ -267,7 +267,7 @@ treat.tap { inputBams }
 control.filter {
   it[2] != '-'
 }
-.cross(inputBams.filter { it[3] != 'input' }) { it[2] }
+.cross(inputBams) { it[2] }
 .tap { crossedBams }
 .map { c, t ->
   [t[0], t[1], c[1], t[3], t[5], t[6]]
