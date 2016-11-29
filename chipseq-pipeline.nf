@@ -196,11 +196,11 @@ singleBam
 }.into { bams; originalBams; bamsReadCount }
 
 // separate bams and inputs
-treat = Channel.create()
-control = Channel.create()
-bams.choice(treat, control) {
-    it[3] == 'input' ? 1 : 0
-}
+// treat = Channel.create()
+// control = Channel.create()
+// bams.choice(treat, control) {
+//     it[3] == 'input' ? 1 : 0
+// }
 
 process readCount {
 
@@ -223,7 +223,7 @@ process readCount {
 process model {
 
   input:
-  set prefix, file(bam), controlId, mark, view from treat
+  set prefix, file(bam), controlId, mark, view from bams.filter { it[3] != 'input' }
 
   output:
   set prefix, file("${prefix}.params.out") into modelParams
@@ -246,21 +246,28 @@ originalBams.mix(modelParams)
   def bam = values.find { it =~ /bam/ }
   def paramFile = values.find { it =~ /params/ }
   def readCount = values.find { it instanceof String } as long
-  fragLen = paramFile.text.split()[2].split(',')[0]
+  def fragLen = paramFile ? paramFile.text.split()[2].split(',')[0] as int : 0
   [prefix, bam, controlId[0], mark[0], readCount, fragLen, view[0]]
 }.into{ bams; results; bams4NRF; bams4FRiP }
 
+// separate bams and inputs
+treat = Channel.create()
+control = Channel.create()
+bams.choice(treat, control) {
+    it[3] == 'input' ? 1 : 0
+}
+
 // get bams with no control
-bams.tap { allBams }
+treat.tap { inputBams }
 .filter {
   it[2] == '-'
 }.set { bamsNoInput }
 
 // cross bams and controls
-control.filter {
+.filter {
   it[2] != '-'
 }
-.cross(allBams) { it[2] }
+.cross(inputBams.filter { it[3] != 'input' }) { it[2] }
 .tap { crossedBams }
 .map { c, t ->
   [t[0], t[1], c[1], t[3], t[5], t[6]]
