@@ -189,11 +189,11 @@ process mergeBam {
 }
 
 
-bams = singleBam
+singleBam
 .mix(mergedBam)
 .map { mergeId, prefix, bam, controlId, mark, view ->
   [ mergeId, bam, controlId, mark, view].flatten()
-}
+}.into { bams, originalBams, bamsReadCount }
 
 // separate bams and inputs
 treat = Channel.create()
@@ -202,13 +202,31 @@ bams.choice(treat, control) {
     it[3] == 'input' ? 1 : 0
 }
 
+process readCount {
+
+  when:
+  control.name != '-'
+
+  input:
+  set prefix, file(bam), controlId, mark, view from bamsReadCount
+
+  output:
+  set prefix, stdout into bamsReads
+
+  script:
+  """
+  samtools view -c ${bam}
+  """
+
+}
+
 process model {
+
   input:
   set prefix, file(bam), controlId, mark, view from treat
 
   output:
   set prefix, file("${prefix}.params.out") into modelParams
-  set prefix, file(bam), controlId, file("${prefix}.params.out"), mark, view into modelBams
 
   script:
   cpus = task.cpus
@@ -221,36 +239,55 @@ process model {
   """
 }
 
-modelBams.map { prefix, bam, controlId, paramFile, mark, view ->
+originalBams.mix(modelParams)
+.mix(bamsReads)
+.groupTuple(by: [0])
+.map { prefix, values, controlId, mark, view ->
+  def bam = values.find { it =~ /bam/ }
+  def paramFile = values.find { it =~ /params/ }
+  def readCount = values.find { it instanceof String } as long
   fragLen = paramFile.text.split()[2].split(',')[0]
-  [prefix, bam, controlId, mark, fragLen, view]
+  [prefix, bam, controlId[0], mark[0], readCount, fragLen, view[0]]
 }.into{ bams; results; bams4NRF; bams4FRiP }
 
 // get bams with no control
 bams.tap { allBams }
 .filter {
   it[2] == '-'
-}.map {
-  [it[0], it[1], it[3], it[4], it[5]]
-}.tap { bamsNoInput }
+}.set { bamsNoInput }
 
 // cross bams and controls
 control.filter {
   it[2] != '-'
 }
-.cross(allBams) { it[2] }.map { c, t ->
-  [t[0], t[1], c[1], t[3], t[4], t[5]]
-}.into { bamsWithInputNarrowPeakCall; bamsWithInputBroadPeakCall }
+.cross(allBams) { it[2] }
+.tap { crossedBams }
+.map { c, t ->
+  [t[0], t[1], c[1], t[3], t[5], t[6]]
+}.mix(bamsNoInput)
+.into { bamsNarrowPeakCall; bamsBroadPeakCall }
+
+crossedBams.map{ c, t ->
+  [t[0], t[4], c[4]]
+}.cross(pileupBedGraphFiles)
+.map { r, s ->
+  def (treat, control) = r[1..-1] as long[]
+  def count = treat < control ? treat : control
+  [s[0], s[1], s[2], s[3], count/1000000, s[4]]
+}.into{ pileupBedGraphFilesPvalSignalTracks }
+
+
+bamsReads
 
 process narrowPeakCall {
   
   input:
   file chromSizes from chromSizesNarrowPeakCall.val
-  set prefix, file(bam), file(control), mark, fragLen, view from bamsWithInputNarrowPeakCall
+  set prefix, file(bam), file(control), mark, fragLen, view from bamsNarrowPeakCall
 
   output:
   set prefix, file("peakOut/${prefix}_peaks.narrowPeak"), mark, fragLen, val("narrowPeak") into narrowPeakFiles, narrowPeakFiles4FRiP
-  set prefix, file("peakOut/${prefix}*.bdg"), mark, fragLen, val("pileupBedGraphs") into pileupBedGraphFilesPileupSignalTracks, pileupBedGraphFilesFeSignalTracks, pileupBedGraphFilesPvalSignalTracks
+  set prefix, file("peakOut/${prefix}*.bdg"), mark, fragLen, val("pileupBedGraphs") into pileupBedGraphFiles, pileupBedGraphFilesPileupSignalTracks, pileupBedGraphFilesFeSignalTracks
   
   script:
   //extSize = Math.round((fragLen as int)/2)
@@ -266,7 +303,7 @@ process broadPeakCall {
   
   input:
   file chromSizes from chromSizesBroadPeakCal.val
-  set prefix, file(bam), file(control), mark, fragLen, view from bamsWithInputBroadPeakCall
+  set prefix, file(bam), file(control), mark, fragLen, view from bamsBroadPeakCall
 
   output:
   set prefix, file("peakOut/${prefix}_peaks.broadPeak"), mark, fragLen, val("broadPeak") into breadPeakFiles
@@ -365,7 +402,7 @@ process pvalSignalTrack {
 
   input:
   file chromSizes from chromSizesPvalSignalTracks.val
-  set prefix, file(bedGraphs), mark, fragLen, view from pileupBedGraphFilesPvalSignalTracks
+  set prefix, file(bedGraphs), mark, fragLen, sval, view from pileupBedGraphFilesPvalSignalTracks
  
   output:
   set prefix, file("peakOut/${prefix}.pval_signal.bw"), mark, fragLen, val("pvalueSignal") into pvalSignalFiles
