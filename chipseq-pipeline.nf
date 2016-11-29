@@ -364,7 +364,7 @@ process pileupSignalTracks {
   set prefix, file(bedGraphs), mark, fragLen, view from pileupBedGraphFilesPileupSignalTracks
 
   output:
-  set prefix, file("peakOut/${prefix}.pileup_signal.bw"), mark, fragLen, val("pileupSignal") into pileupSignalFiles
+  set prefix, file("${prefix}.pileup_signal.bw"), mark, fragLen, val("pileupSignal") into pileupSignalFiles
   
   script:
   """
@@ -385,7 +385,7 @@ process feSignalTracks {
   set prefix, file(bedGraphs), mark, fragLen, view from pileupBedGraphFilesFeSignalTracks
 
   output:
-  set prefix, file("peakOut/${prefix}.fc_signal.bw"), mark, fragLen, val("fcSignal") into feSignalFiles
+  set prefix, file("${prefix}.fc_signal.bw"), mark, fragLen, val("fcSignal") into feSignalFiles
 
   script:
   def treat = bedGraphs.find { it =~ /treat/ }
@@ -411,7 +411,7 @@ process pvalSignalTrack {
   set prefix, file(bedGraphs), mark, fragLen, sval, view from pileupBedGraphFilesPvalSignalTracks
  
   output:
-  set prefix, file("peakOut/${prefix}.pval_signal.bw"), mark, fragLen, val("pvalueSignal") into pvalSignalFiles
+  set prefix, file("${prefix}.pval_signal.bw"), mark, fragLen, val("pvalueSignal") into pvalSignalFiles
   
   script:
   def treat = bedGraphs.find { it =~ /treat/ }
