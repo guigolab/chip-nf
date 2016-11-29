@@ -346,7 +346,7 @@ process rescalePeaks {
 
 
   script:
-  def rescale_awk_str = 'BEGIN{FS=OFS="\\t";min=1e20;max=-1}'
+  rescale_awk_str = 'BEGIN{FS=OFS="\\t";min=1e20;max=-1}'
   rescale_awk_str += 'NR==FNR&&NF!=0{min>$5?min=$5:min=min;max<$5?max=$5:max=max;next}'
   rescale_awk_str += 'NF!=0{n=$5;x=10;y=1000;$5=int(((n-min)*(y-x)/(max-min))+x);print}'
   """
@@ -365,7 +365,7 @@ process pileupSignalTracks {
   set prefix, file("${prefix}.pileup_signal.bw"), mark, fragLen, val("pileupSignal") into pileupSignalFiles
   
   script:
-  def treat = bedGraphs instanceof nextflow.util.BlankSeparatedList ? bedGraphs.find { it =~ /treat/ } : bedGraphs
+  treat = bedGraphs instanceof nextflow.util.BlankSeparatedList ? bedGraphs.find { it =~ /treat/ } : bedGraphs
   """
   # pileup signal tracks
   slopBed -i ${treat} -g ${chromSizes} -b 0 \
@@ -387,8 +387,8 @@ process feSignalTracks {
   set prefix, file("${prefix}.fc_signal.bw"), mark, fragLen, val("fcSignal") into feSignalFiles
 
   script:
-  def treat = bedGraphs.find { it =~ /treat/ }
-  def control = bedGraphs.find { it =~ /control/ }
+  treat = bedGraphs.find { it =~ /treat/ }
+  control = bedGraphs.find { it =~ /control/ }
   """
   # Fold enrichment signal tracks
   macs2 bdgcmp -t ${treat} \
@@ -413,8 +413,8 @@ process pvalSignalTrack {
   set prefix, file("${prefix}.pval_signal.bw"), mark, fragLen, val("pvalueSignal") into pvalSignalFiles
   
   script:
-  def treat = bedGraphs.find { it =~ /treat/ }
-  def control = bedGraphs.find { it =~ /control/ }
+  treat = bedGraphs.find { it =~ /treat/ }
+  control = bedGraphs.find { it =~ /control/ }
   """
   # -log10(p-value) signal tracks
   macs2 bdgcmp -t ${treat} \
