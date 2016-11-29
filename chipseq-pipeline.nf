@@ -356,8 +356,6 @@ process rescalePeaks {
 }
 
 process pileupSignalTracks {
-  when:
-  bedGraphs instanceof Path
 
   input:
   file chromSizes from chromSizesPileupSignalTracks.val
@@ -367,9 +365,10 @@ process pileupSignalTracks {
   set prefix, file("${prefix}.pileup_signal.bw"), mark, fragLen, val("pileupSignal") into pileupSignalFiles
   
   script:
+  def treat = bedGraphs instanceof nextflow.util.BlankSeparatedList ? bedGraphs.find { it =~ /treat/ } : bedGraphs
   """
   # pileup signal tracks
-  slopBed -i ${bedGraphs} -g ${chromSizes} -b 0 \
+  slopBed -i ${treat} -g ${chromSizes} -b 0 \
   | bedClip stdin ${chromSizes} ${prefix}.pileup_signal.bedgraph
   bedGraphToBigWig ${prefix}.pileup_signal.bedgraph ${chromSizes} ${prefix}.pileup_signal.bw
   """
