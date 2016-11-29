@@ -193,7 +193,9 @@ singleBam
 .mix(mergedBam)
 .map { mergeId, prefix, bam, controlId, mark, view ->
   [ mergeId, bam, controlId, mark, view].flatten()
-}.tap { originalBams; bamsReadCount }
+}
+.tap { originalBams }
+.tap{ bamsReadCount }
 .filter { it[3] != 'input'}
 .into { modelBams }
 
