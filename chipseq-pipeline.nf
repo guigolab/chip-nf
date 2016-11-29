@@ -267,18 +267,6 @@ control.filter {
 }.mix(bamsNoInput)
 .into { bamsNarrowPeakCall; bamsBroadPeakCall }
 
-crossedBams.map{ c, t ->
-  [t[0], t[4], c[4]]
-}.cross(pileupBedGraphFiles)
-.map { r, s ->
-  def (treat, control) = r[1..-1] as long[]
-  def count = treat < control ? treat : control
-  [s[0], s[1], s[2], s[3], count/1000000, s[4]]
-}.into{ pileupBedGraphFilesPvalSignalTracks }
-
-
-bamsReads
-
 process narrowPeakCall {
   
   input:
@@ -298,6 +286,15 @@ process narrowPeakCall {
                  --keep-dup all -B --SPMR
   """
 }
+
+crossedBams.map{ c, t ->
+  [t[0], t[4], c[4]]
+}.cross(pileupBedGraphFiles)
+.map { r, s ->
+  def (treat, control) = r[1..-1] as long[]
+  def count = treat < control ? treat : control
+  [s[0], s[1], s[2], s[3], count/1000000, s[4]]
+}.into{ pileupBedGraphFilesPvalSignalTracks }
 
 process broadPeakCall {
   
