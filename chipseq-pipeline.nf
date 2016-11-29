@@ -250,7 +250,7 @@ process narrowPeakCall {
 
   output:
   set prefix, file("peakOut/${prefix}_peaks.narrowPeak"), mark, fragLen, val("narrowPeak") into narrowPeakFiles, narrowPeakFiles4FRiP
-  set prefix, file("peakOut/${prefix}_treat_pileup.bdg"), mark, fragLen, val("pileupBedGraph") into pileupBedGraphFilesPileupSignalTracks, pileupBedGraphFilesFeSignalTracks, pileupBedGraphFilesPvalSignalTracks
+  set prefix, file("peakOut/${prefix}*.bdg"), mark, fragLen, val("pileupBedGraphs") into pileupBedGraphFilesPileupSignalTracks, pileupBedGraphFilesFeSignalTracks, pileupBedGraphFilesPvalSignalTracks
   
   script:
   //extSize = Math.round((fragLen as int)/2)
@@ -313,10 +313,12 @@ process rescalePeaks {
 }
 
 process pileupSignalTracks {
+  when:
+  bedGraphs instanceof Path
 
   input:
   file chromSizes from chromSizesPileupSignalTracks.val
-  set prefix, file(bedGraph), mark, fragLen, view from pileupBedGraphFilesPileupSignalTracks
+  set prefix, file(bedGraphs), mark, fragLen, view from pileupBedGraphFilesPileupSignalTracks
 
   output:
   set prefix, file("peakOut/${prefix}.pileup_signal.bw"), mark, fragLen, val("pileupSignal") into pileupSignalFiles
@@ -324,7 +326,7 @@ process pileupSignalTracks {
   script:
   """
   # pileup signal tracks
-  slopBed -i ${bedGraph} -g ${chromSizes} -b 0 \
+  slopBed -i ${bedGraphs} -g ${chromSizes} -b 0 \
   | bedClip stdin ${chromSizes} ${prefix}.pileup_signal.bedgraph
   bedGraphToBigWig ${prefix}.pileup_signal.bedgraph ${chromSizes} ${prefix}.pileup_signal.bw
   """
@@ -333,7 +335,7 @@ process pileupSignalTracks {
 process feSignalTracks {
   
   when:
-  control.name != '-'
+  bedGraphs instanceof nextflow.util.BlankSeparatedList
 
   input:
   file chromSizes from chromSizesFeSignalTracks.val
@@ -343,10 +345,12 @@ process feSignalTracks {
   set prefix, file("peakOut/${prefix}.fc_signal.bw"), mark, fragLen, val("fcSignal") into feSignalFiles
 
   script:
+  def treat = bedGraphs.find { it =~ /treat/ }
+  def control = bedGraphs.find { it =~ /control/ }
   """
   # Fold enrichment signal tracks
-  macs2 bdgcmp -t peakOut/${prefix}_treat_pileup.bdg \
-               -c peakOut/${prefix}_control_lambda.bdg --outdir . \
+  macs2 bdgcmp -t ${treat} \
+               -c ${control} --outdir . \
                -o ${prefix}_FE.bdg -m FE
   slopBed -i ${prefix}_FE.bdg -g ${chromSizes} -b 0 \
   | bedClip stdin ${chromSizes} ${prefix}.fc.signal.bedgraph
@@ -356,6 +360,9 @@ process feSignalTracks {
 
 process pvalSignalTrack {
 
+  when:
+  bedGraphs instanceof nextflow.util.BlankSeparatedList
+
   input:
   file chromSizes from chromSizesPvalSignalTracks.val
   set prefix, file(bedGraph), mark, fragLen, view from pileupBedGraphFilesPvalSignalTracks
@@ -364,16 +371,16 @@ process pvalSignalTrack {
   set prefix, file("peakOut/${prefix}.pval_signal.bw"), mark, fragLen, val("pvalueSignal") into pvalSignalFiles
   
   script:
+  def treat = bedGraphs.find { it =~ /treat/ }
+  def control = bedGraphs.find { it =~ /control/ }
   """
   # -log10(p-value) signal tracks
-  bamReads=\$(samtools view -c ${bam}) && controlReads=\$(samtools view -c ${control}) \
-   && sval=\$(bc -l <<< \$((bamReads<controlReads?bamReads:controlReads))/1000000)
-  macs2 bdgcmp -t peakOut/${prefix}_treat_pileup.bdg \
-               -c peakOut/${prefix}_control_lambda.bdg --outdir peakOut \
-               -o ${prefix}_ppois.bdg -m ppois -S \$sval
-  slopBed -i peakOut/${prefix}_ppois.bdg -g ${chromSizes} -b 0 \
-  | bedClip stdin ${chromSizes} peakOut/${prefix}.pval.signal.bedgraph
-  bedGraphToBigWig peakOut/${prefix}.pval.signal.bedgraph ${chromSizes} peakOut/${prefix}.pval_signal.bw
+  macs2 bdgcmp -t ${treat} \
+               -c ${control} --outdir . \
+               -o ${prefix}_ppois.bdg -m ppois -S ${sval}
+  slopBed -i ${prefix}_ppois.bdg -g ${chromSizes} -b 0 \
+  | bedClip stdin ${chromSizes} ${prefix}.pval.signal.bedgraph
+  bedGraphToBigWig ${prefix}.pval.signal.bedgraph ${chromSizes} ${prefix}.pval_signal.bw
   """
 }
 
