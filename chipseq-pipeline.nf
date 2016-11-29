@@ -339,7 +339,7 @@ process feSignalTracks {
 
   input:
   file chromSizes from chromSizesFeSignalTracks.val
-  set prefix, file(bedGraph), mark, fragLen, view from pileupBedGraphFilesFeSignalTracks
+  set prefix, file(bedGraphs), mark, fragLen, view from pileupBedGraphFilesFeSignalTracks
 
   output:
   set prefix, file("peakOut/${prefix}.fc_signal.bw"), mark, fragLen, val("fcSignal") into feSignalFiles
@@ -365,7 +365,7 @@ process pvalSignalTrack {
 
   input:
   file chromSizes from chromSizesPvalSignalTracks.val
-  set prefix, file(bedGraph), mark, fragLen, view from pileupBedGraphFilesPvalSignalTracks
+  set prefix, file(bedGraphs), mark, fragLen, view from pileupBedGraphFilesPvalSignalTracks
  
   output:
   set prefix, file("peakOut/${prefix}.pval_signal.bw"), mark, fragLen, val("pvalueSignal") into pvalSignalFiles
