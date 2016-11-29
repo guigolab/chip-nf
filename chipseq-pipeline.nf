@@ -205,7 +205,7 @@ bams.choice(treat, control) {
 process readCount {
 
   when:
-  control.name != '-'
+  controlId != '-'
 
   input:
   set prefix, file(bam), controlId, mark, view from bamsReadCount
