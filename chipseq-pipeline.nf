@@ -193,14 +193,9 @@ singleBam
 .mix(mergedBam)
 .map { mergeId, prefix, bam, controlId, mark, view ->
   [ mergeId, bam, controlId, mark, view].flatten()
-}.into { bams; originalBams; bamsReadCount }
-
-// separate bams and inputs
-// treat = Channel.create()
-// control = Channel.create()
-// bams.choice(treat, control) {
-//     it[3] == 'input' ? 1 : 0
-// }
+}.tap { originalBams; bamsReadCount }
+.filter { it[3] != 'input'}
+.into { modelBams }
 
 process readCount {
 
@@ -223,7 +218,7 @@ process readCount {
 process model {
 
   input:
-  set prefix, file(bam), controlId, mark, view from bams.filter { it[3] != 'input' }
+  set prefix, file(bam), controlId, mark, view from modelBams
 
   output:
   set prefix, file("${prefix}.params.out") into modelParams
@@ -248,17 +243,17 @@ originalBams.mix(modelParams)
   def readCount = values.find { it instanceof String } as long
   def fragLen = paramFile ? paramFile.text.split()[2].split(',')[0] as int : 0
   [prefix, bam, controlId[0], mark[0], readCount, fragLen, view[0]]
-}.tap{ bams }
+}.tap{ allBams }
 .filter {
   it[3] != 'input'
 }.map { prefix, bam, controlId, mark, readCount, fragLen, view ->
   [prefix, bam, controlId, mark, fragLen, view]
-}.into { results; bams4NRF; bams4FRiP }
+}.into { bamResults; bams4NRF; bams4FRiP }
 
 // separate bams and inputs
 treat = Channel.create()
 control = Channel.create()
-bams.choice(treat, control) {
+allBams.choice(treat, control) {
     it[3] == 'input' ? 1 : 0
 }
 
@@ -474,7 +469,7 @@ metrics = NRFBams.cross(FRiPBams)
 }
 
 metrics.cross(
-  results.map { prefix, bam, control, mark, fragLen, view ->
+  bamResults.map { prefix, bam, control, mark, fragLen, view ->
     [ prefix, bam, mark, fragLen, view ]
   }
   .mix(peakCallResults, pileupSignalFiles, feSignalFiles, pvalSignalFiles)
