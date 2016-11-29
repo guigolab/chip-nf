@@ -193,7 +193,7 @@ singleBam
 .mix(mergedBam)
 .map { mergeId, prefix, bam, controlId, mark, view ->
   [ mergeId, bam, controlId, mark, view].flatten()
-}.into { bams, originalBams, bamsReadCount }
+}.into { bams; originalBams; bamsReadCount }
 
 // separate bams and inputs
 treat = Channel.create()
