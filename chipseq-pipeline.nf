@@ -264,7 +264,7 @@ treat.tap { inputBams }
 }.set { bamsNoInput }
 
 // cross bams and controls
-.filter {
+control.filter {
   it[2] != '-'
 }
 .cross(inputBams.filter { it[3] != 'input' }) { it[2] }
