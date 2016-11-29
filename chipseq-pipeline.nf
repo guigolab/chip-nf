@@ -248,7 +248,12 @@ originalBams.mix(modelParams)
   def readCount = values.find { it instanceof String } as long
   def fragLen = paramFile ? paramFile.text.split()[2].split(',')[0] as int : 0
   [prefix, bam, controlId[0], mark[0], readCount, fragLen, view[0]]
-}.into{ bams; results; bams4NRF; bams4FRiP }
+}.tap{ bams }
+.filter {
+  it[3] != 'input'
+}.map { prefix, bam, controlId, mark, readCount, fragLen, view ->
+  [prefix, bam, controlId, mark, fragLen, view]
+}.into { results; bams4NRF; bams4FRiP }
 
 // separate bams and inputs
 treat = Channel.create()
