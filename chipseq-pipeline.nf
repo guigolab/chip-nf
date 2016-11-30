@@ -109,12 +109,12 @@ process mapping {
   set mergeId, prefix, file("${prefix}_primary.bam"), controlId, mark, view into bams
 
   script:
-  cpus = task.cpus
-  memory = task.memory
-  readGroup = "ID=${prefix},SM=${mergeId}"
-  view = "Alignments"
-  cat = fastq.name.endsWith('.gz') ? 'zcat' : 'cat'
-  awk_str = 'BEGIN{OFS=FS="\\t"}$0!~/^@/{split(\"1_2_8_32_64_128\",a,\"_\");for(i in a){if(and($2,a[i])>0){$2=xor($2,a[i])}}}{print}'
+  def cpus = task.cpus
+  def memory = task.memory
+  def readGroup = "ID=${prefix},SM=${mergeId}"
+  def view = "Alignments"
+  def cat = fastq.name.endsWith('.gz') ? 'zcat' : 'cat'
+  def awk_str = 'BEGIN{OFS=FS="\\t"}$0!~/^@/{split(\"1_2_8_32_64_128\",a,\"_\");for(i in a){if(and($2,a[i])>0){$2=xor($2,a[i])}}}{print}'
   """
   ${cat} ${fastq} \
   | gem-mapper -I ${index} \
@@ -155,25 +155,25 @@ process mapping {
 }
 
 // Merge or rename bam
-singleBam = Channel.create()
-groupedBam = Channel.create()
+singleBams = Channel.create()
+groupedBams = Channel.create()
 
 bams.groupTuple(by: [0,3,4])
-.choice(singleBam, groupedBam) {
+.choice(singleBams, groupedBams) {
   it[2].size() > 1 ? 1 : 0
 }
 
 process mergeBam {
 
     input:
-    set mergeId, prefix, file(bam), controlId, mark, view from groupedBam
+    set mergeId, prefix, file(bam), controlId, mark, view from groupedBams
 
     output:
-    set mergeId, prefix, file("${mergeId}.bam"), controlId, mark, view into mergedBam
+    set mergeId, prefix, file("${mergeId}.bam"), controlId, mark, view into mergedBams
 
     script:
-    cpus = task.cpus
-    prefix = prefix.sort().join(':')
+    def cpus = task.cpus
+    def prefix = prefix.sort().join(':')
     """
     (
       samtools view -H ${bam} | grep -v '@RG';
@@ -189,8 +189,8 @@ process mergeBam {
 }
 
 
-singleBam
-.mix(mergedBam)
+singleBams
+.mix(mergedBams)
 .map { mergeId, prefix, bam, controlId, mark, view ->
   [ mergeId, bam, controlId, mark, view].flatten()
 }
@@ -226,7 +226,7 @@ process model {
   set prefix, file("${prefix}.params.out") into modelParams
 
   script:
-  cpus = task.cpus
+  def cpus = task.cpus
   """
   Rscript \$(which run_spp.R) -c=${bam} \
                               -rf \
@@ -253,20 +253,20 @@ originalBams.mix(modelParams)
 }.into { bamResults; bams4NRF; bams4FRiP }
 
 // separate bams and inputs
-treat = Channel.create()
-control = Channel.create()
-allBams.choice(treat, control) {
+treatBams = Channel.create()
+controlBams = Channel.create()
+allBams.choice(treatBams, controlBams) {
     it[3] == 'input' ? 1 : 0
 }
 
 // get bams with no control
-treat.tap { inputBams }
+treatBams.tap { inputBams }
 .filter {
   it[2] == '-'
 }.set { bamsNoInput }
 
 // cross bams and controls
-control.filter {
+controlBams.filter {
   it[2] != '-'
 }
 .cross(inputBams) { it[2] }
@@ -346,7 +346,7 @@ process rescalePeaks {
 
 
   script:
-  rescale_awk_str = 'BEGIN{FS=OFS="\\t";min=1e20;max=-1}'
+  def rescale_awk_str = 'BEGIN{FS=OFS="\\t";min=1e20;max=-1}'
   rescale_awk_str += 'NR==FNR&&NF!=0{min>$5?min=$5:min=min;max<$5?max=$5:max=max;next}'
   rescale_awk_str += 'NF!=0{n=$5;x=10;y=1000;$5=int(((n-min)*(y-x)/(max-min))+x);print}'
   """
@@ -365,7 +365,7 @@ process pileupSignalTracks {
   set prefix, file("${prefix}.pileup_signal.bw"), mark, fragLen, val("pileupSignal") into pileupSignalFiles
   
   script:
-  treat = bedGraphs instanceof nextflow.util.BlankSeparatedList ? bedGraphs.find { it =~ /treat/ } : bedGraphs
+  def treat = bedGraphs instanceof nextflow.util.BlankSeparatedList ? bedGraphs.find { it =~ /treat/ } : bedGraphs
   """
   # pileup signal tracks
   slopBed -i ${treat} -g ${chromSizes} -b 0 \
@@ -387,8 +387,8 @@ process feSignalTracks {
   set prefix, file("${prefix}.fc_signal.bw"), mark, fragLen, val("fcSignal") into feSignalFiles
 
   script:
-  treat = bedGraphs.find { it =~ /treat/ }
-  control = bedGraphs.find { it =~ /control/ }
+  def treat = bedGraphs.find { it =~ /treat/ }
+  def control = bedGraphs.find { it =~ /control/ }
   """
   # Fold enrichment signal tracks
   macs2 bdgcmp -t ${treat} \
@@ -413,8 +413,8 @@ process pvalSignalTrack {
   set prefix, file("${prefix}.pval_signal.bw"), mark, fragLen, val("pvalueSignal") into pvalSignalFiles
   
   script:
-  treat = bedGraphs.find { it =~ /treat/ }
-  control = bedGraphs.find { it =~ /control/ }
+  def treat = bedGraphs.find { it =~ /treat/ }
+  def control = bedGraphs.find { it =~ /control/ }
   """
   # -log10(p-value) signal tracks
   macs2 bdgcmp -t ${treat} \
@@ -434,7 +434,7 @@ process NRF {
   set prefix, stdout into NRFBams
 
   script:
-  cpus = task.cpus
+  def cpus = task.cpus
   """
   samtools view -@${cpus} ${bam} | NRF.awk 
   """
@@ -456,7 +456,7 @@ process FRiP {
   set prefix, stdout into FRiPBams
 
   script:
-  cpus = task.cpus
+  def cpus = task.cpus
   """
   READS=\$(samtools view -F 260 -c ${bam})
   RiP=\$(bedtools intersect -abam ${bam} -b ${peak} -f 1.0 | samtools view - -c)
