@@ -52,13 +52,13 @@ index = file(params.index)
 fastqs = Channel
 .from(index.readLines())
 .map { line ->
-  list = line.split()
-  mergeId = list[0]
-  id = list[1]
-  path = file(list[2])
-  controlId = list[3]
-  mark = list[4]
-  quality = fastq(path).qualityScore()
+  def list = line.split()
+  def mergeId = list[0]
+  def id = list[1]
+  def path = file(list[2])
+  def controlId = list[3]
+  def mark = list[4]
+  def quality = fastq(path).qualityScore()
   [ mergeId, id, path, controlId, mark, quality ]
 }
 
