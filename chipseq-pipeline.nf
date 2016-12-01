@@ -106,13 +106,12 @@ process mapping {
   set mergeId, prefix, file(fastq), controlId, mark, quality from fastqs
 
   output:
-  set mergeId, prefix, file("${prefix}_primary.bam"), controlId, mark, view into bams
+  set mergeId, prefix, file("${prefix}_primary.bam"), controlId, mark, val('Alignments') into bams
 
   script:
   def cpus = task.cpus
   def memory = task.memory
   def readGroup = "ID=${prefix},SM=${mergeId}"
-  def view = "Alignments"
   def cat = fastq.name.endsWith('.gz') ? 'zcat' : 'cat'
   def awk_str = 'BEGIN{OFS=FS="\\t"}$0!~/^@/{split(\"1_2_8_32_64_128\",a,\"_\");for(i in a){if(and($2,a[i])>0){$2=xor($2,a[i])}}}{print}'
   """
