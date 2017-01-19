@@ -1,5 +1,6 @@
 params.mismatches = 2
 params.multimaps = 10
+params.minMatchedBases = 0.80
 params.dbFile = 'chipseq-pipeline.db'
 params.genomeSize = 'hs'
 
@@ -20,8 +21,9 @@ if (params.help) {
     log.info '    --genome-index GENOME_INDEX_ FILE   Reference genome index file.'
     log.info '    --genome-size GENOME_SIZE           Reference genome size for MACS2 callpeaks. Must be one of' 
     log.info '                                        MACS2 precomputed sizes: hs, mm, dm, ce. (Default: hs)'
-    log.info '    --mismatches N_MISMATCHES           Allow max N_MISMATCHES error events for a read (Default: 2).'
-    log.info '    --multimaps N_MULTIMAPS             Allow max N_MULTIMAPS mappings for a read (Default: 10).'
+    log.info '    --mismatches MISMATCHES             Sets the maximum number/percentage of mismatches allowed for a read (Default: 2).'
+    log.info '    --multimaps MULTIMAPS               Sets the maximum number of mappings allowed for a read (Default: 10).'
+    log.info '    --min-matched-bases BASES           Sets the minimum number/percentage of bases that have to match with the reference(Default: 0.80).'
     log.info '    --rescale                           Rescale peak scores to conform to the format supported by the '
     log.info '                                        UCSC genome browser (score must be <1000) (Default: false).'
     log.info ''
@@ -102,13 +104,16 @@ process mapping {
   script:
   cpus = task.cpus
   memory = task.memory
+  mismatches = params.mismatches
+  multimaps = params.multimaps
+  minMatchedBases = params.minMatchedBases
   readGroup = "ID=${prefix},SM=${mergeId}"
   view = "Alignments"
   cat = fastq.name.endsWith('.gz') ? 'zcat' : 'cat'
   awk_str = 'BEGIN{OFS=FS="\\t"}$0!~/^@/{split(\"1_2_8_32_64_128\",a,\"_\");for(i in a){if(and($2,a[i])>0){$2=xor($2,a[i])}}}{print}'
   """
-  ${cat} ${fastq} | gem-mapper -I ${index} -q offset-${quality} -T ${cpus} | pigz -p ${cpus} -c > ${prefix}.map.gz
-  gt.filter -i ${prefix}.map.gz --max-levenshtein-error ${params.mismatches} -t ${cpus}| gt.filter --max-maps ${params.multimaps} -t ${cpus} | pigz -p ${cpus} -c > ${prefix}.filter.map.gz
+  ${cat} ${fastq} | gem-mapper -I ${index} -q offset-${quality} -m ${mismatches} --min-matched-bases {minMatchedBases}-T ${cpus} | pigz -p ${cpus} -c > ${prefix}.map.gz
+  gt.filter -i ${prefix}.map.gz --max-levenshtein-error ${mismatches} -t ${cpus}| gt.filter --max-maps ${multimaps} -t ${cpus} | pigz -p ${cpus} -c > ${prefix}.filter.map.gz
   pigz -p ${cpus} -dc ${prefix}.filter.map.gz | gem-2-sam -T ${cpus} -I ${index} -q offset-${quality} -l --expect-single-end-reads --read-group ${readGroup} | awk '${awk_str}' | samtools view -@ ${cpus} -Sb - | samtools sort -@ ${cpus} - ${prefix}
   samtools view -@ ${cpus} -bF256 ${prefix}.bam  > ${prefix}_primary.bam
   """
