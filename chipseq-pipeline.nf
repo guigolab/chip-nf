@@ -112,7 +112,7 @@ process mapping {
   cat = fastq.name.endsWith('.gz') ? 'zcat' : 'cat'
   awk_str = 'BEGIN{OFS=FS="\\t"}$0!~/^@/{split(\"1_2_8_32_64_128\",a,\"_\");for(i in a){if(and($2,a[i])>0){$2=xor($2,a[i])}}}{print}'
   """
-  ${cat} ${fastq} | gem-mapper -I ${index} -q offset-${quality} -m ${mismatches} --min-matched-bases {minMatchedBases}-T ${cpus} | pigz -p ${cpus} -c > ${prefix}.map.gz
+  ${cat} ${fastq} | gem-mapper -I ${index} -q offset-${quality} -m ${mismatches} --min-matched-bases {minMatchedBases} -T ${cpus} | pigz -p ${cpus} -c > ${prefix}.map.gz
   gt.filter -i ${prefix}.map.gz --max-levenshtein-error ${mismatches} -t ${cpus}| gt.filter --max-maps ${multimaps} -t ${cpus} | pigz -p ${cpus} -c > ${prefix}.filter.map.gz
   pigz -p ${cpus} -dc ${prefix}.filter.map.gz | gem-2-sam -T ${cpus} -I ${index} -q offset-${quality} -l --expect-single-end-reads --read-group ${readGroup} | awk '${awk_str}' | samtools view -@ ${cpus} -Sb - | samtools sort -@ ${cpus} - ${prefix}
   samtools view -@ ${cpus} -bF256 ${prefix}.bam  > ${prefix}_primary.bam
