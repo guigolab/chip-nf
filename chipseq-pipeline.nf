@@ -1,7 +1,12 @@
+params.dbFile = 'chipseq-pipeline.db'
+params.genome = ''
+params.genomeIndex = ''
+params.genomeSize = 'hs'
+params.help = false
+params.index = ''
 params.mismatches = 2
 params.multimaps = 10
-params.dbFile = 'chipseq-pipeline.db'
-params.genomeSize = 'hs'
+params.rescale = false
 
 //print usage
 if (params.help) {
