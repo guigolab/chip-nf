@@ -36,9 +36,6 @@ if (params.help) {
 pdb = file(params.dbFile)
 pdb.write('')
 
-genome = file(params.genome)
-index = file(params.index)
-
 ////// Check input parameters //////
 if (!params.genome) {
   exit 1, "Please specify a genome file"
@@ -48,6 +45,9 @@ if (!params.index) {
   exit 1, "Please specify the input table file"
 }
 ////// End of input parameters check ////////
+
+genome = file(params.genome)
+index = file(params.index)
 
 fastqs = Channel
 .from(index.readLines())
