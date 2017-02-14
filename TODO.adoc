@@ -2,6 +2,7 @@
 :icons: font
 
 - [ ] shifting (estim-constant)/2
+- [ ] mark/remove duplicates
 - [ ] bigwig for input
 - [ ] shift size per sample (input column)
 - [ ] add estimation from MACS2
