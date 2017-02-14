@@ -1,6 +1,10 @@
 = TODO
 :icons: font
 
+- [ ] shifting (estim-constant)/2
+- [ ] bigwig for input
+- [ ] shift size per sample (input column)
+- [ ] add estimation from MACS2
 - [ ] remove/make optional gt.filter for multimaps
 - [ ] check if ENCODE BAM files are filtered for unique alignments
 - [ ] use unique alignments only (gem uniq option)
