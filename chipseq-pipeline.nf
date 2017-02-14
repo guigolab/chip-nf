@@ -202,7 +202,7 @@ process markDup {
   set prefix, file(bam), controlId, mark, view from bamsMarkDup
 
   output:
-  set prefix, file("${bam.baseName}_picard.bam"), controlId, mark, view into bamsMarked
+  set prefix, file("${bam.baseName}_picard.bam"), controlId, mark, view into bamsMarked, originalBams, bamsReadCount, modelBams
   set prefix, file("${prefix}.picard.metrics"), controlId, mark, val("picardMetrics") into picardStats
 
   script:
@@ -218,12 +218,6 @@ process markDup {
                                                REMOVE_DUPLICATES=${rmDup}
   """
 }
-
-bamsMarked
-.tap { originalBams }
-.tap { bamsReadCount }
-.filter { it[3] != 'input'}
-.into { modelBams }
 
 process readCount {
 
@@ -272,11 +266,12 @@ originalBams.mix(modelParams)
   def fragLen = paramFile ? paramFile.text.split()[2].split(',')[0] as int : 0
   [prefix, bam, controlId[0], mark[0], readCount, fragLen, view[0]]
 }.tap{ allBams }
+.map { prefix, bam, controlId, mark, readCount, fragLen, view ->
+  [prefix, bam, controlId, mark, fragLen, view]
+}.tap { bamResults }
 .filter {
   it[3] != 'input'
-}.map { prefix, bam, controlId, mark, readCount, fragLen, view ->
-  [prefix, bam, controlId, mark, fragLen, view]
-}.into { bamResults; bams4NRF; bams4FRiP }
+}.into { bams4NRF; bams4FRiP }
 
 // separate bams and inputs
 treatBams = Channel.create()
@@ -296,7 +291,9 @@ treatBams.tap { inputBams }
 .into { bamsNarrowPeakCallNoInput; bamsBroadPeakCallNoInput }
 
 // cross bams and controls
-controlBams.filter {
+controlBams
+.tap { controlBams4Signal }
+.filter {
   it[2] != '-'
 }
 .cross(inputBams) { it[2] }
@@ -330,7 +327,7 @@ process narrowPeakCallNoInput {
   
   input:
   file chromSizes from chromSizesNarrowPeakCallNoInput.val
-  set prefix, file(bam), mark, fragLen, view from bamsNarrowPeakCallNoInput
+  set prefix, file(bam), mark, fragLen, view from bamsNarrowPeakCallNoInput.mix(controlBams4Signal.map { [ it[0], it[1], it[3], it[5], it[6] ] })
 
   output:
   set prefix, file("peakOut/${prefix}_peaks.narrowPeak"), mark, fragLen, val("narrowPeak") into narrowPeakFilesNoInput, narrowPeakFiles4FRiPNoInput
@@ -349,12 +346,12 @@ process narrowPeakCallNoInput {
 crossedBams.map{ c, t ->
   [t[0], t[4], c[4]]
 }.cross(pileupBedGraphFiles)
-.cross(pileupBedGraphFilesNoInput)
 .map { r, s ->
   def (treat, control) = r[1..-1] as long[]
   def count = treat < control ? treat : control
   [s[0], s[1], s[2], s[3], count/1000000, s[4]]
-}.into{ pileupBedGraphFilesPvalSignalTracks }
+}
+.into{ pileupBedGraphFilesPvalSignalTracks }
 
 process broadPeakCall {
   
@@ -434,7 +431,7 @@ process pileupSignalTracks {
   set prefix, file(bedGraphs), mark, fragLen, view from pileupBedGraphFilesPileupSignalTracks.mix(pileupBedGraphFilesPileupSignalTracksNoInput)
 
   output:
-  set prefix, file("${prefix}.pileup_signal.bw"), mark, fragLen, val("pileupSignal") into pileupSignalFiles
+  set prefix, file("${prefix}.pileup_signal.bw"), mark, fragLen, val("pileupSignal") into pileupSignalFiles, pileupSignalFilesResults
   
   script:
   def treat = bedGraphs instanceof nextflow.util.BlankSeparatedList ? bedGraphs.find { it =~ /treat/ } : bedGraphs
@@ -449,7 +446,7 @@ process pileupSignalTracks {
 process feSignalTracks {
   
   when:
-  bedGraphs instanceof nextflow.util.BlankSeparatedList
+  bedGraphs instanceof nextflow.util.BlankSeparatedList && mark != 'input'
 
   input:
   file chromSizes from chromSizesFeSignalTracks.val
@@ -475,7 +472,7 @@ process feSignalTracks {
 process pvalSignalTrack {
 
   when:
-  bedGraphs instanceof nextflow.util.BlankSeparatedList
+  bedGraphs instanceof nextflow.util.BlankSeparatedList && mark != 'input'
 
   input:
   file chromSizes from chromSizesPvalSignalTracks.val
@@ -516,6 +513,7 @@ input4FRiP = bams4FRiP.map { prefix, bam, controlId, mark, fragLen, view ->
     [prefix, bam, mark, fragLen, view]
 }.mix(narrowPeakFiles4FRiP)
 .mix(narrowPeakFiles4FRiPNoInput)
+.filter { it[2] != 'input' }
 .groupTuple(by: [0,2,3])
 .map { prefix, files, controlId, mark, views ->
   def bam = files.find { it.name =~ /bam$/ }
@@ -546,13 +544,21 @@ metrics = NRFBams.cross(FRiPBams)
 }
 
 metrics.cross(
-  bamResults.map { prefix, bam, control, mark, fragLen, view ->
+  bamResults
+  .map { prefix, bam, control, mark, fragLen, view ->
     [ prefix, bam, mark, fragLen, view ]
   }
+  .tap { resultBams }
   .mix(peakCallResults, pileupSignalFiles, feSignalFiles, pvalSignalFiles)
 ).map { qc, result ->
     result + qc[1..-1]
-}
+}.mix(
+  resultBams.mix(pileupSignalFilesResults)
+  .filter { it[2] == 'input' }
+  .map {
+    it + [ '-', '-' ]
+  }
+)
 .collectFile(name: pdb.name, storeDir: pdb.parent, newLine: true) { prefix, path, mark, fragLen, view, nrf, frip ->
     [ prefix, path, mark, fragLen, view, nrf, frip ].join("\t")
 }
