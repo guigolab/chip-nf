@@ -518,7 +518,9 @@ input4FRiP = bams4FRiP.map { prefix, bam, controlId, mark, fragLen, view ->
 .mix(narrowPeakFiles4FRiPNoInput)
 .groupTuple(by: [0,2,3])
 .map { prefix, files, controlId, mark, views ->
-  [prefix, files[0], files[1]]
+  def bam = files.find { it.name =~ /bam$/ }
+  def peaks = files.find { it.name =~ /narrowPeak$/ }
+  [ prefix, bam, peaks ]
 }
 
 process FRiP {
