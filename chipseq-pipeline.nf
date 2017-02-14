@@ -193,8 +193,35 @@ singleBams
 .map { mergeId, prefix, bam, controlId, mark, view ->
   [ mergeId, bam, controlId, mark, view].flatten()
 }
+.into { bamsMarkDup }
+
+
+process markDup {
+  
+  input:
+  set prefix, file(bam), controlId, mark, view from bamsMarkDup
+
+  output:
+  set prefix, file("${bam.baseName}_picard.bam"), controlId, mark, view into bamsMarked
+  set prefix, file("${prefix}.picard.metrics"), controlId, mark, val("picardMetrics") into picardStats
+
+  script:
+  def sorted = true
+  def rmDup = true
+  def mem = "${task.memory?.toMega() ?: 1024}m"
+  """
+  java -Xmx${mem} -jar `which picard.jar` MarkDuplicates INPUT=${bam} \
+                                               OUTPUT=${bam.baseName}_picard.bam \
+                                               METRICS_FILE=${prefix}.picard.metrics \
+                                               VALIDATION_STRINGENCY=LENIENT \
+                                               ASSUME_SORTED=${sorted} \
+                                               REMOVE_DUPLICATES=${rmDup}
+  """
+}
+
+bamsMarked
 .tap { originalBams }
-.tap{ bamsReadCount }
+.tap { bamsReadCount }
 .filter { it[3] != 'input'}
 .into { modelBams }
 
