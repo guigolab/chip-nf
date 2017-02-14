@@ -349,6 +349,7 @@ process narrowPeakCallNoInput {
 crossedBams.map{ c, t ->
   [t[0], t[4], c[4]]
 }.cross(pileupBedGraphFiles)
+.cross(pileupBedGraphFilesNoInput)
 .map { r, s ->
   def (treat, control) = r[1..-1] as long[]
   def count = treat < control ? treat : control
@@ -416,7 +417,6 @@ process rescalePeaks {
   set prefix, file("${peaks.name}.rescaled"), mark, fragLen, val("rescaled${view.capitalize()}") into rescaledPeakFiles
 
 
-
   script:
   def rescale_awk_str = 'BEGIN{FS=OFS="\\t";min=1e20;max=-1}'
   rescale_awk_str += 'NR==FNR&&NF!=0{min>$5?min=$5:min=min;max<$5?max=$5:max=max;next}'
@@ -431,7 +431,7 @@ process pileupSignalTracks {
 
   input:
   file chromSizes from chromSizesPileupSignalTracks.val
-  set prefix, file(bedGraphs), mark, fragLen, view from pileupBedGraphFilesPileupSignalTracks
+  set prefix, file(bedGraphs), mark, fragLen, view from pileupBedGraphFilesPileupSignalTracks.mix(pileupBedGraphFilesPileupSignalTracksNoInput)
 
   output:
   set prefix, file("${prefix}.pileup_signal.bw"), mark, fragLen, val("pileupSignal") into pileupSignalFiles
@@ -453,7 +453,7 @@ process feSignalTracks {
 
   input:
   file chromSizes from chromSizesFeSignalTracks.val
-  set prefix, file(bedGraphs), mark, fragLen, view from pileupBedGraphFilesFeSignalTracks
+  set prefix, file(bedGraphs), mark, fragLen, view from pileupBedGraphFilesFeSignalTracks.mix(pileupBedGraphFilesFeSignalTracksNoInput)
 
   output:
   set prefix, file("${prefix}.fc_signal.bw"), mark, fragLen, val("fcSignal") into feSignalFiles
@@ -514,7 +514,9 @@ process NRF {
 
 input4FRiP = bams4FRiP.map { prefix, bam, controlId, mark, fragLen, view ->
     [prefix, bam, mark, fragLen, view]
-}.mix(narrowPeakFiles4FRiP).groupTuple(by: [0,2,3])
+}.mix(narrowPeakFiles4FRiP)
+.mix(narrowPeakFiles4FRiPNoInput)
+.groupTuple(by: [0,2,3])
 .map { prefix, files, controlId, mark, views ->
   [prefix, files[0], files[1]]
 }
@@ -538,7 +540,7 @@ process FRiP {
 
 metrics = NRFBams.cross(FRiPBams)
 .map { nrf, frip ->
-  [nrf[0], nrf[1], frip[1]] 
+ [nrf[0], nrf[1], frip[1]] 
 }
 
 metrics.cross(
