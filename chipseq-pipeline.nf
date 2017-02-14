@@ -92,7 +92,7 @@ process fastaIndex {
   file genome
 
   output:
-  file "${genome}.fai" into chromSizesNarrowPeakCall, chromSizesBroadPeakCal, chromSizesPileupSignalTracks, chromSizesFeSignalTracks, chromSizesPvalSignalTracks
+  file "${genome}.fai" into chromSizesNarrowPeakCall, chromSizesNarrowPeakCallNoInput, chromSizesBroadPeakCall, chromSizesBroadPeakCallNoInput, chromSizesPileupSignalTracks, chromSizesFeSignalTracks, chromSizesPvalSignalTracks
 
   script:
   """
@@ -200,8 +200,8 @@ singleBams
 
 process readCount {
 
-  when:
-  controlId != '-'
+//  when:
+//  controlId != '-'
 
   input:
   set prefix, file(bam), controlId, mark, view from bamsReadCount
@@ -211,7 +211,7 @@ process readCount {
 
   script:
   """
-  samtools view -c ${bam}
+  samtools view -F 256 -c ${bam}
   """
 
 }
@@ -262,17 +262,21 @@ allBams.choice(treatBams, controlBams) {
 treatBams.tap { inputBams }
 .filter {
   it[2] == '-'
-}.set { bamsNoInput }
+}
+.map { prefix, bam, controlId, mark, readCount, fragLen, view ->
+  [ prefix, bam, mark, fragLen, view ]
+}
+.into { bamsNarrowPeakCallNoInput; bamsBroadPeakCallNoInput }
 
 // cross bams and controls
 controlBams.filter {
   it[2] != '-'
 }
 .cross(inputBams) { it[2] }
-.tap { crossedBams }
+.tap { crossedBams } 
 .map { c, t ->
   [t[0], t[1], c[1], t[3], t[5], t[6]]
-}.mix(bamsNoInput)
+}
 .into { bamsNarrowPeakCall; bamsBroadPeakCall }
 
 process narrowPeakCall {
@@ -289,7 +293,27 @@ process narrowPeakCall {
   //extSize = Math.round((fragLen as int)/2)
   """
   # narrow peaks and preliminary signal tracks
-  macs2 callpeak -t ${bam} ${ control.name != '-' ? "-c ${control}" : "" } -n ${prefix} --outdir peakOut \
+  macs2 callpeak -t ${bam} -c ${control} -n ${prefix} --outdir peakOut \
+                 -f BAM -g ${params.genomeSize} -p 1e-2 --nomodel --extsize=${fragLen} \
+                 --keep-dup all -B --SPMR
+  """
+}
+
+process narrowPeakCallNoInput {
+  
+  input:
+  file chromSizes from chromSizesNarrowPeakCallNoInput.val
+  set prefix, file(bam), mark, fragLen, view from bamsNarrowPeakCallNoInput
+
+  output:
+  set prefix, file("peakOut/${prefix}_peaks.narrowPeak"), mark, fragLen, val("narrowPeak") into narrowPeakFilesNoInput, narrowPeakFiles4FRiPNoInput
+  set prefix, file("peakOut/${prefix}*.bdg"), mark, fragLen, val("pileupBedGraphs") into pileupBedGraphFilesNoInput, pileupBedGraphFilesPileupSignalTracksNoInput, pileupBedGraphFilesFeSignalTracksNoInput
+  
+  script:
+  //extSize = Math.round((fragLen as int)/2)
+  """
+  # narrow peaks and preliminary signal tracks
+  macs2 callpeak -t ${bam} -n ${prefix} --outdir peakOut \
                  -f BAM -g ${params.genomeSize} -p 1e-2 --nomodel --extsize=${fragLen} \
                  --keep-dup all -B --SPMR
   """
@@ -307,18 +331,38 @@ crossedBams.map{ c, t ->
 process broadPeakCall {
   
   input:
-  file chromSizes from chromSizesBroadPeakCal.val
+  file chromSizes from chromSizesBroadPeakCall.val
   set prefix, file(bam), file(control), mark, fragLen, view from bamsBroadPeakCall
 
   output:
-  set prefix, file("peakOut/${prefix}_peaks.broadPeak"), mark, fragLen, val("broadPeak") into breadPeakFiles
+  set prefix, file("peakOut/${prefix}_peaks.broadPeak"), mark, fragLen, val("broadPeak") into broadPeakFiles
   set prefix, file("peakOut/${prefix}_peaks.gappedPeak"), mark, fragLen, val("gappedPeak") into gappedPeakFiles
 
   script:
   //extSize = Math.round((fragLen as int)/2)
   """
   # Broad and Gapped Peaks
-  macs2 callpeak -t ${bam} ${ control.name != '-' ? "-c ${control}" : "" } -n ${prefix} --outdir peakOut \
+  macs2 callpeak -t ${bam} -c ${control} -n ${prefix} --outdir peakOut \
+                 -f BAM -g ${params.genomeSize} -p 1e-2 --broad --nomodel --extsize=${fragLen} \
+                 --keep-dup all
+  """
+}
+
+process broadPeakCallNoInput {
+  
+  input:
+  file chromSizes from chromSizesBroadPeakCallNoInput.val
+  set prefix, file(bam), mark, fragLen, view from bamsBroadPeakCallNoInput
+
+  output:
+  set prefix, file("peakOut/${prefix}_peaks.broadPeak"), mark, fragLen, val("broadPeak") into broadPeakFilesNoInput
+  set prefix, file("peakOut/${prefix}_peaks.gappedPeak"), mark, fragLen, val("gappedPeak") into gappedPeakFilesNoInput
+
+  script:
+  //extSize = Math.round((fragLen as int)/2)
+  """
+  # Broad and Gapped Peaks
+  macs2 callpeak -t ${bam} -n ${prefix} --outdir peakOut \
                  -f BAM -g ${params.genomeSize} -p 1e-2 --broad --nomodel --extsize=${fragLen} \
                  --keep-dup all
   """
@@ -326,8 +370,11 @@ process broadPeakCall {
 
 // Collect peak files
 narrowPeakFiles
-  .mix( breadPeakFiles )
+  .mix( broadPeakFiles )
   .mix( gappedPeakFiles )
+  .mix( narrowPeakFilesNoInput )
+  .mix( broadPeakFilesNoInput )
+  .mix( gappedPeakFilesNoInput )
 .into{ allPeakFiles; peakCallResults; peakCallResults4FRiP }
 
 process rescalePeaks {
