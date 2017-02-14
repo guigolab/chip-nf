@@ -415,7 +415,6 @@ process rescalePeaks {
   output:
   set prefix, file("${peaks.name}.rescaled"), mark, fragLen, val("rescaled${view.capitalize()}") into rescaledPeakFiles
 
-  output:
 
 
   script:
