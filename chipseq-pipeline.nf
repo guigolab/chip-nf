@@ -4,9 +4,11 @@ params.genomeIndex = ''
 params.genomeSize = 'hs'
 params.help = false
 params.index = ''
+params.rescale = false
 params.mismatches = 2
 params.multimaps = 10
-params.rescale = false
+params.minMatchedBases = 0.8
+params.qualityThreshold = 26
 
 //print usage
 if (params.help) {
@@ -117,21 +119,14 @@ process mapping {
   """
   ${cat} ${fastq} \
   | gem-mapper -I ${index} \
+               -m ${params.mismatches} \
+               -e ${params.mismatches} \
+               --min-matched-bases ${params.minMatchedBases} \
+               -d ${params.multimaps} \
+               -D 0 \
+               --gem-quality-threshold ${params.qualityThreshold} \
                -q offset-${quality} \
                -T ${cpus} \
-  | pigz -p ${cpus} \
-         -c \
-  > ${prefix}.map.gz
-  gt.filter -i ${prefix}.map.gz \
-            --max-levenshtein-error ${params.mismatches} \
-            -t ${cpus}\
-  | gt.filter --max-maps ${params.multimaps} \
-              -t ${cpus} \
-  | pigz -p ${cpus} \
-         -c \
-  > ${prefix}.filter.map.gz
-  pigz -p ${cpus} \
-       -dc ${prefix}.filter.map.gz \
   | gem-2-sam -T ${cpus} \
               -I ${index} \
               -q offset-${quality} \
@@ -140,19 +135,13 @@ process mapping {
               --read-group ${readGroup} \
   | awk '${awk_str}' \
   | samtools view -@ ${cpus} \
-                  -Sb \
+                  -SbF256 \
                   - \
   | samtools sort -@ ${cpus} \
                   - \
-                  ${prefix}
-  
-  samtools view -@ ${cpus} \
-                -bF256 \
-                ${prefix}.bam \
-  > ${prefix}_primary.bam
+                  ${prefix}_primary
   """
 }
-
 // Merge or rename bam
 singleBams = Channel.create()
 groupedBams = Channel.create()
