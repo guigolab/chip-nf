@@ -256,15 +256,14 @@ process model {
   """
 }
 
-originalBams.mix(modelParams)
-.mix(bamsReads)
-.groupTuple(by: [0])
-.map { prefix, values, controlId, mark, view ->
-  def bam = values.find { it =~ /bam/ }
-  def paramFile = values.find { it =~ /params/ }
-  def readCount = values.find { it instanceof String } as long
-  def fragLen = paramFile ? paramFile.text.split()[2].split(',')[0] as int : 0
-  [prefix, bam, controlId[0], mark[0], readCount, fragLen, view[0]]
+originalBams.cross(
+  modelParams.cross(bamsReads)
+  .map { model, reads ->
+    [ model[0], model[1], reads[1] ]
+  }
+).map { bams, crossed ->
+  def fragLen = crossed[1] ? crossed[1].text.split()[2].split(',')[0] as int : 0
+  bams[0..-2] + crossed[-1..-1] + [fragLen] + bams[-1..-1]
 }.tap{ allBams }
 .map { prefix, bam, controlId, mark, readCount, fragLen, view ->
   [prefix, bam, controlId, mark, fragLen, view]
