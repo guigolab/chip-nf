@@ -232,7 +232,7 @@ process readCount {
 
   script:
   """
-  samtools view -F 256 -c ${bam}
+  samtools view -F 256 -c ${bam} | tr -d '\n'
   """
 
 }
