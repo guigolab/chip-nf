@@ -2,13 +2,14 @@ params.dbFile = 'chipseq-pipeline.db'
 params.genome = ''
 params.genomeIndex = ''
 params.genomeSize = 'hs'
+params.fragmentLength = 200
 params.help = false
 params.index = ''
-params.rescale = false
+params.minMatchedBases = 0.8
 params.mismatches = 2
 params.multimaps = 10
-params.minMatchedBases = 0.8
 params.qualityThreshold = 26
+params.rescale = false
 
 //print usage
 if (params.help) {
@@ -27,8 +28,11 @@ if (params.help) {
     log.info '    --genome-index GENOME_INDEX_ FILE   Reference genome index file.'
     log.info '    --genome-size GENOME_SIZE           Reference genome size for MACS2 callpeaks. Must be one of' 
     log.info '                                        MACS2 precomputed sizes: hs, mm, dm, ce. (Default: hs)'
-    log.info '    --mismatches N_MISMATCHES           Allow max N_MISMATCHES error events for a read (Default: 2).'
-    log.info '    --multimaps N_MULTIMAPS             Allow max N_MULTIMAPS mappings for a read (Default: 10).'
+    log.info '    --mismatches MISMATCHES             Sets the maximum number/percentage of mismatches allowed for a read (Default: 2).'
+    log.info '    --multimaps MULTIMAPS               Sets the maximum number of mappings allowed for a read (Default: 10).'
+    log.info '    --min-matched-bases BASES           Sets the minimum number/percentage of bases that have to match with the reference (Default: 0.80).'
+    log.info '    --quality-threshold THRESHOLD       Sets the sequence quality threshold for a base to be considered as low-quality (Default: 26).'
+    log.info '    --fragment-length LENGTH            Sets the fragment length globally for all samples (Default: 200).'
     log.info '    --rescale                           Rescale peak scores to conform to the format supported by the '
     log.info '                                        UCSC genome browser (score must be <1000) (Default: false).'
     log.info ''
@@ -302,11 +306,12 @@ process narrowPeakCall {
   set prefix, file("peakOut/${prefix}*.bdg"), mark, fragLen, val("pileupBedGraphs") into pileupBedGraphFiles, pileupBedGraphFilesPileupSignalTracks, pileupBedGraphFilesFeSignalTracks
   
   script:
-  //extSize = Math.round((fragLen as int)/2)
+  def shiftSize = Math.round((fragLen - params.fragmentLength) / 2)
   """
   # narrow peaks and preliminary signal tracks
   macs2 callpeak -t ${bam} -c ${control} -n ${prefix} --outdir peakOut \
-                 -f BAM -g ${params.genomeSize} -p 1e-2 --nomodel --extsize=${fragLen} \
+                 -f BAM -g ${params.genomeSize} -p 1e-2 \
+                 --nomodel --shift=${shiftSize} --extsize=${params.fragmentLength} \
                  --keep-dup all -B --SPMR
   """
 }
@@ -322,11 +327,12 @@ process narrowPeakCallNoInput {
   set prefix, file("peakOut/${prefix}*.bdg"), mark, fragLen, val("pileupBedGraphs") into pileupBedGraphFilesNoInput, pileupBedGraphFilesPileupSignalTracksNoInput, pileupBedGraphFilesFeSignalTracksNoInput
   
   script:
-  //extSize = Math.round((fragLen as int)/2)
+  def shiftSize = Math.round((fragLen - params.fragmentLength) / 2)
   """
   # narrow peaks and preliminary signal tracks
   macs2 callpeak -t ${bam} -n ${prefix} --outdir peakOut \
-                 -f BAM -g ${params.genomeSize} -p 1e-2 --nomodel --extsize=${fragLen} \
+                 -f BAM -g ${params.genomeSize} -p 1e-2 \
+                 --nomodel --shift=${shiftSize} --extsize=${params.fragmentLength} \
                  --keep-dup all -B --SPMR
   """
 }
@@ -352,11 +358,12 @@ process broadPeakCall {
   set prefix, file("peakOut/${prefix}_peaks.gappedPeak"), mark, fragLen, val("gappedPeak") into gappedPeakFiles
 
   script:
-  //extSize = Math.round((fragLen as int)/2)
+  def shiftSize = Math.round((fragLen - params.fragmentLength) / 2)
   """
   # Broad and Gapped Peaks
   macs2 callpeak -t ${bam} -c ${control} -n ${prefix} --outdir peakOut \
-                 -f BAM -g ${params.genomeSize} -p 1e-2 --broad --nomodel --extsize=${fragLen} \
+                 -f BAM -g ${params.genomeSize} -p 1e-2 --broad \
+                 --nomodel --shift=${shiftSize} --extsize=${params.fragmentLength} \
                  --keep-dup all
   """
 }
@@ -372,11 +379,12 @@ process broadPeakCallNoInput {
   set prefix, file("peakOut/${prefix}_peaks.gappedPeak"), mark, fragLen, val("gappedPeak") into gappedPeakFilesNoInput
 
   script:
-  //extSize = Math.round((fragLen as int)/2)
+  def shiftSize = Math.round((fragLen - params.fragmentLength) / 2)
   """
   # Broad and Gapped Peaks
   macs2 callpeak -t ${bam} -n ${prefix} --outdir peakOut \
-                 -f BAM -g ${params.genomeSize} -p 1e-2 --broad --nomodel --extsize=${fragLen} \
+                 -f BAM -g ${params.genomeSize} -p 1e-2 --broad \
+                 --nomodel --shift=${shiftSize} --extsize=${params.fragmentLength} \
                  --keep-dup all
   """
 }
