@@ -267,8 +267,10 @@ originalBams.cross(bamsReads)
       it.value[0]
       break
     case 2:
-      def fragLen = it.value[0][1].text.split()[2].split(',')[0] as Integer
-      it.value[1][0..-4] + [fragLen] + it.value[1][-2..-1]
+      def bams = it.value.find { it[1] =~ /bam/ }
+      def paramFile = it.value.find { it[1] =~ /params/ }[1]
+      def fragLen = paramFile.text.split()[2].split(',')[0] as Integer
+      bams[0..-4] + [fragLen] + bams[-2..-1]
       break
   }
 }.tap{ allBams }
