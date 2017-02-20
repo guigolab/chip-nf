@@ -1,12 +1,12 @@
 = TODO
 :icons: font
 
-- [ ] shifting (estim-constant)/2
+- [x] shifting (estim-constant)/2
 - [x] mark/remove duplicates
 - [x] bigwig for input
-- [ ] shift size per sample (input column)
+- [x] shift size per sample (input column)
 - [ ] add estimation from MACS2
-- [ ] remove/make optional gt.filter for multimaps
+- [x] remove/make optional gt.filter for multimaps
 - [ ] check if ENCODE BAM files are filtered for unique alignments
 - [ ] use unique alignments only (gem uniq option)
 - [x] run pipeline with trace (get process statistics about runtime, memory, etc.)
