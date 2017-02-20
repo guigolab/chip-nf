@@ -64,8 +64,12 @@ fastqs = Channel
   def path = file(list[2])
   def controlId = list[3]
   def mark = list[4]
+  def fragLen = list.size() == 6 ? list[5] as Integer : -1
+  if ( fragLen != -1) {
+    log.info "Using ${fragLen} as fragment length for ${mergeId}"
+  }
   def quality = fastq(path).qualityScore()
-  [ mergeId, id, path, controlId, mark, quality ]
+  [ mergeId, id, path, controlId, mark, fragLen, quality ]
 }
 
 if (!params.genomeIndex) {
@@ -109,10 +113,10 @@ process fastaIndex {
 process mapping {
   input:
   file index from GenomeIdx.val
-  set mergeId, prefix, file(fastq), controlId, mark, quality from fastqs
+  set mergeId, prefix, file(fastq), controlId, mark, fragLen, quality from fastqs
 
   output:
-  set mergeId, prefix, file("${prefix}_primary.bam"), controlId, mark, val('Alignments') into bams
+  set mergeId, prefix, file("${prefix}_primary.bam"), controlId, mark, fragLen, val('Alignments') into bams
 
   script:
   def cpus = task.cpus
@@ -158,10 +162,10 @@ bams.groupTuple(by: [0,3,4])
 process mergeBam {
 
     input:
-    set mergeId, prefix, file(bam), controlId, mark, view from groupedBams
+    set mergeId, prefix, file(bam), controlId, mark, fragLen, view from groupedBams
 
     output:
-    set mergeId, prefix, file("${mergeId}.bam"), controlId, mark, view into mergedBams
+    set mergeId, prefix, file("${mergeId}.bam"), controlId, mark, fragLen, view into mergedBams
 
     script:
     def cpus = task.cpus
@@ -183,8 +187,8 @@ process mergeBam {
 
 singleBams
 .mix(mergedBams)
-.map { mergeId, prefix, bam, controlId, mark, view ->
-  [ mergeId, bam, controlId, mark, view].flatten()
+.map { mergeId, prefix, bam, controlId, mark, fragLen, view ->
+  [ mergeId, bam, controlId, mark, fragLen, view].flatten()
 }
 .into { bamsMarkDup }
 
@@ -192,11 +196,11 @@ singleBams
 process markDup {
   
   input:
-  set prefix, file(bam), controlId, mark, view from bamsMarkDup
+  set prefix, file(bam), controlId, mark, fragLen, view from bamsMarkDup
 
   output:
-  set prefix, file("${bam.baseName}_picard.bam"), controlId, mark, view into bamsMarked, originalBams, bamsReadCount, modelBams
-  set prefix, file("${prefix}.picard.metrics"), controlId, mark, val("picardMetrics") into picardStats
+  set prefix, file("${bam.baseName}_picard.bam"), controlId, mark, fragLen, view into bamsMarked, originalBams, bamsReadCount, modelBams
+  set prefix, file("${prefix}.picard.metrics"), controlId, mark, fragLen, val("picardMetrics") into picardStats
 
   script:
   def sorted = true
@@ -218,7 +222,7 @@ process readCount {
 //  controlId != '-'
 
   input:
-  set prefix, file(bam), controlId, mark, view from bamsReadCount
+  set prefix, file(bam), controlId, mark, fragLen, view from bamsReadCount
 
   output:
   set prefix, stdout into bamsReads
@@ -231,9 +235,11 @@ process readCount {
 }
 
 process model {
+  when:
+  fragLen == -1
 
   input:
-  set prefix, file(bam), controlId, mark, view from modelBams
+  set prefix, file(bam), controlId, mark, fragLen, view from modelBams
 
   output:
   set prefix, file("${prefix}.params.out") into modelParams
@@ -249,16 +255,24 @@ process model {
   """
 }
 
-originalBams.cross(
-  modelParams.cross(bamsReads)
-  .map { model, reads ->
-    [ model[0], model[1], reads[1] ]
+originalBams.cross(bamsReads)
+.map { bams, reads ->
+  bams + reads[-1..-1]
+}.mix(modelParams)
+.groupBy()
+.flatMap()
+.map { it ->
+  switch (it.value.size()) {
+    case 1:
+      it.value[0]
+      break
+    case 2:
+      def fragLen = it.value[0][1].text.split()[2].split(',')[0] as Integer
+      it.value[1][0..-4] + [fragLen] + it.value[1][-2..-1]
+      break
   }
-).map { bams, crossed ->
-  def fragLen = crossed[1] ? crossed[1].text.split()[2].split(',')[0] as int : 0
-  bams[0..-2] + crossed[-1..-1] + [fragLen] + bams[-1..-1]
 }.tap{ allBams }
-.map { prefix, bam, controlId, mark, readCount, fragLen, view ->
+.map { prefix, bam, controlId, mark, fragLen, view, readCount->
   [prefix, bam, controlId, mark, fragLen, view]
 }.tap { bamResults }
 .filter {
@@ -277,7 +291,7 @@ treatBams.tap { inputBams }
 .filter {
   it[2] == '-'
 }
-.map { prefix, bam, controlId, mark, readCount, fragLen, view ->
+.map { prefix, bam, controlId, mark, fragLen, view, readCount ->
   [ prefix, bam, mark, fragLen, view ]
 }
 .into { bamsNarrowPeakCallNoInput; bamsBroadPeakCallNoInput }
@@ -291,7 +305,7 @@ controlBams
 .cross(inputBams) { it[2] }
 .tap { crossedBams } 
 .map { c, t ->
-  [t[0], t[1], c[1], t[3], t[5], t[6]]
+  [t[0], t[1], c[1], t[3], t[4], t[5]]
 }
 .into { bamsNarrowPeakCall; bamsBroadPeakCall }
 
@@ -320,7 +334,7 @@ process narrowPeakCallNoInput {
   
   input:
   file chromSizes from chromSizesNarrowPeakCallNoInput.val
-  set prefix, file(bam), mark, fragLen, view from bamsNarrowPeakCallNoInput.mix(controlBams4Signal.map { [ it[0], it[1], it[3], it[5], it[6] ] })
+  set prefix, file(bam), mark, fragLen, view from bamsNarrowPeakCallNoInput.mix(controlBams4Signal.map { [ it[0], it[1], it[3], it[4], it[5] ] })
 
   output:
   set prefix, file("peakOut/${prefix}_peaks.narrowPeak"), mark, fragLen, val("narrowPeak") into narrowPeakFilesNoInput, narrowPeakFiles4FRiPNoInput
