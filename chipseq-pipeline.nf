@@ -481,7 +481,7 @@ process feSignalTracks {
   """
 }
 
-process pvalSignalTrack {
+process pvalSignalTracks {
 
   when:
   bedGraphs instanceof nextflow.util.BlankSeparatedList && mark != 'input'
