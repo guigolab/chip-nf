@@ -165,7 +165,7 @@ process mergeBam {
     set mergeId, prefix, file(bam), controlId, mark, fragLen, view from groupedBams
 
     output:
-    set mergeId, prefix, file("${mergeId}.bam"), controlId, mark, fragLen, view into mergedBams
+    set mergeId, prefix, file("${mergeId}_primary.bam"), controlId, mark, fragLen, view into mergedBams
 
     script:
     def cpus = task.cpus
