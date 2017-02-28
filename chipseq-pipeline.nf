@@ -10,6 +10,7 @@ params.mismatches = 2
 params.multimaps = 10
 params.qualityThreshold = 26
 params.rescale = false
+params.removeDuplicates = false
 
 //print usage
 if (params.help) {
@@ -33,6 +34,7 @@ if (params.help) {
     log.info '    --min-matched-bases BASES           Sets the minimum number/percentage of bases that have to match with the reference (Default: 0.80).'
     log.info '    --quality-threshold THRESHOLD       Sets the sequence quality threshold for a base to be considered as low-quality (Default: 26).'
     log.info '    --fragment-length LENGTH            Sets the fragment length globally for all samples (Default: 200).'
+    log.info '    --remove-duplicates                 Remove duplicate alignments instead of just flagging them (Default: false).'
     log.info '    --rescale                           Rescale peak scores to conform to the format supported by the '
     log.info '                                        UCSC genome browser (score must be <1000) (Default: false).'
     log.info ''
@@ -204,7 +206,7 @@ process markDup {
 
   script:
   def sorted = true
-  def rmDup = true
+  def rmDup = params.removeDuplicates
   def mem = "${task.memory?.toMega() ?: 1024}m"
   """
   java -Xmx${mem} -jar `which picard.jar` MarkDuplicates INPUT=${bam} \
