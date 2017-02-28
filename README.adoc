@@ -28,8 +28,8 @@ You can then get the pipeline help:
 ----
 $ nextflow run chip-nf --help
 
-N E X T F L O W  ~  version 0.17.3
-Launching 'guigolab/chip-nf' - revision: bdc3e2bcc4 [master]
+N E X T F L O W  ~  version 0.23.3
+Launching `./chipseq-pipeline.nf` [hopeful_roentgen] - revision: b993b6d058
 
 C H I P - N F ~ ChIP-seq Pipeline
 ---------------------------------
@@ -42,10 +42,15 @@ Options:
     --help                              Show this message and exit.
     --index TSV_FILE                    Tab separted file containing information about the data.
     --genome GENOME_FILE                Reference genome file.
+    --genome-index GENOME_INDEX_ FILE   Reference genome index file.
     --genome-size GENOME_SIZE           Reference genome size for MACS2 callpeaks. Must be one of
                                         MACS2 precomputed sizes: hs, mm, dm, ce. (Default: hs)
-    --mismatches N_MISMATCHES           Allow max N_MISMATCHES error events for a read (Default: 2).
-    --multimaps N_MULTIMAPS             Allow max N_MULTIMAPS mappings for a read (Default: 10).
+    --mismatches MISMATCHES             Sets the maximum number/percentage of mismatches allowed for a read (Default: 2).
+    --multimaps MULTIMAPS               Sets the maximum number of mappings allowed for a read (Default: 10).
+    --min-matched-bases BASES           Sets the minimum number/percentage of bases that have to match with the reference (Default: 0.80).
+    --quality-threshold THRESHOLD       Sets the sequence quality threshold for a base to be considered as low-quality (Default: 26).
+    --fragment-length LENGTH            Sets the fragment length globally for all samples (Default: 200).
+    --remove-duplicates                 Remove duplicate alignments instead of just flagging them (Default: false).
     --rescale                           Rescale peak scores to conform to the format supported by the
                                         UCSC genome browser (score must be <1000) (Default: false).
 ----
