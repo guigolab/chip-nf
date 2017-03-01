@@ -11,6 +11,7 @@ params.multimaps = 10
 params.qualityThreshold = 26
 params.rescale = false
 params.removeDuplicates = false
+params.shift = false
 
 //print usage
 if (params.help) {
@@ -35,8 +36,9 @@ if (params.help) {
     log.info '    --quality-threshold THRESHOLD       Sets the sequence quality threshold for a base to be considered as low-quality (Default: 26).'
     log.info '    --fragment-length LENGTH            Sets the fragment length globally for all samples (Default: 200).'
     log.info '    --remove-duplicates                 Remove duplicate alignments instead of just flagging them (Default: false).'
-    log.info '    --rescale                           Rescale peak scores to conform to the format supported by the '
+    log.info '    --rescale                           Rescale peak scores to conform to the format supported by the'
     log.info '                                        UCSC genome browser (score must be <1000) (Default: false).'
+    log.info '    --shift                             Move fragments ends and apply global extsize in peak calling. (Default: false).'
     log.info ''
     exit 1
 }
@@ -324,12 +326,13 @@ process narrowPeakCall {
   set prefix, file("peakOut/${prefix}*.bdg"), mark, fragLen, val("pileupBedGraphs") into pileupBedGraphFiles, pileupBedGraphFilesPileupSignalTracks, pileupBedGraphFilesFeSignalTracks
   
   script:
-  def shiftSize = Math.round((fragLen - params.fragmentLength) / 2)
+  def extSize = params.shift ? params.fragmentLength : fragLen
+  def shiftSize = params.shift ? Math.round((fragLen - params.fragmentLength) / 2) : 0
   """
   # narrow peaks and preliminary signal tracks
   macs2 callpeak -t ${bam} -c ${control} -n ${prefix} --outdir peakOut \
                  -f BAM -g ${params.genomeSize} -p 1e-2 \
-                 --nomodel --shift=${shiftSize} --extsize=${params.fragmentLength} \
+                 --nomodel --shift=${shiftSize} --extsize=${extSize} \
                  --keep-dup all -B --SPMR
   """
 }
@@ -345,12 +348,13 @@ process narrowPeakCallNoInput {
   set prefix, file("peakOut/${prefix}*.bdg"), mark, fragLen, val("pileupBedGraphs") into pileupBedGraphFilesNoInput, pileupBedGraphFilesPileupSignalTracksNoInput, pileupBedGraphFilesFeSignalTracksNoInput
   
   script:
-  def shiftSize = Math.round((fragLen - params.fragmentLength) / 2)
+  def extSize = params.shift ? params.fragmentLength : fragLen
+  def shiftSize = params.shift ? Math.round((fragLen - params.fragmentLength) / 2) : 0
   """
   # narrow peaks and preliminary signal tracks
   macs2 callpeak -t ${bam} -n ${prefix} --outdir peakOut \
                  -f BAM -g ${params.genomeSize} -p 1e-2 \
-                 --nomodel --shift=${shiftSize} --extsize=${params.fragmentLength} \
+                 --nomodel --shift=${shiftSize} --extsize=${extSize} \
                  --keep-dup all -B --SPMR
   """
 }
@@ -376,12 +380,13 @@ process broadPeakCall {
   set prefix, file("peakOut/${prefix}_peaks.gappedPeak"), mark, fragLen, val("gappedPeak") into gappedPeakFiles
 
   script:
-  def shiftSize = Math.round((fragLen - params.fragmentLength) / 2)
+  def extSize = params.shift ? params.fragmentLength : fragLen
+  def shiftSize = params.shift ? Math.round((fragLen - params.fragmentLength) / 2) : 0
   """
   # Broad and Gapped Peaks
   macs2 callpeak -t ${bam} -c ${control} -n ${prefix} --outdir peakOut \
                  -f BAM -g ${params.genomeSize} -p 1e-2 --broad \
-                 --nomodel --shift=${shiftSize} --extsize=${params.fragmentLength} \
+                 --nomodel --shift=${shiftSize} --extsize=${extSize} \
                  --keep-dup all
   """
 }
@@ -397,12 +402,13 @@ process broadPeakCallNoInput {
   set prefix, file("peakOut/${prefix}_peaks.gappedPeak"), mark, fragLen, val("gappedPeak") into gappedPeakFilesNoInput
 
   script:
-  def shiftSize = Math.round((fragLen - params.fragmentLength) / 2)
+  def extSize = params.shift ? params.fragmentLength : fragLen
+  def shiftSize = params.shift ? Math.round((fragLen - params.fragmentLength) / 2) : 0
   """
   # Broad and Gapped Peaks
   macs2 callpeak -t ${bam} -n ${prefix} --outdir peakOut \
                  -f BAM -g ${params.genomeSize} -p 1e-2 --broad \
-                 --nomodel --shift=${shiftSize} --extsize=${params.fragmentLength} \
+                 --nomodel --shift=${shiftSize} --extsize=${extSize} \
                  --keep-dup all
   """
 }
