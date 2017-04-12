@@ -1,0 +1,13 @@
+machine:
+  java:
+    version: oraclejdk8
+  services:
+    - docker
+    
+test:
+  pre:
+    - docker pull guigolab/chip-nf@sha256:c08d9c4653e4e8ea95d03ef1668b1c222dea0d5b033f2afd4afbc0e9bb558434
+    - curl -fsSL get.nextflow.io | bash 
+  override:
+    - ./nextflow run .
+    - bash -x validate-ci.sh

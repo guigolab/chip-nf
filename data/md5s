@@ -1,0 +1,15 @@
+db2ef6de651dbd6d0a2ed803c9ec93bd *AWP.K4m3.1.fc_signal.bw
+55afb55b610eb60a2caca352c1cd5950 *AWP.K4m3.1.pileup_signal.bw
+92b36906c3c2d5f0784883fa418e20eb *AWP.K4m3.1.pval_signal.bw
+6796fa9a9ed25580c8d715c3afefaca6 *AWP.K4m3.1_peaks.broadPeak
+9c1df58926ee19d638c76bfd7999d1ac *AWP.K4m3.1_peaks.gappedPeak
+4d5981b48b3a206e7ab473957789cff5 *AWP.K4m3.1_peaks.narrowPeak
+5b8f66bc4217d467a69ab964c7079a38 *AWP.K4m3.1_primary_picard.bam
+7f35b43c906ca1117d2a811355c047d8 *I.AWP.K4m3.1.pileup_signal.bw
+e1b0b2657262afec92d8aeba415f62a5 *I.AWP.K4m3.1_primary_picard.bam
+e154e70494309d49e6cae46d9181150f *WLP.K36m3.1.fc_signal.bw
+d3c99b50ba68dd30374d7196b9d5b345 *WLP.K36m3.1.pileup_signal.bw
+a9273e1a62abb091364e6085601e703d *WLP.K36m3.1_peaks.broadPeak
+767defca60ec95b8cd30934a4d0ef010 *WLP.K36m3.1_peaks.gappedPeak
+7cee456ff38e172a7bf1410b2acc5084 *WLP.K36m3.1_peaks.narrowPeak
+77c6a67f18af9a796651a29e5bd53939 *WLP.K36m3.1_primary_picard.bam
