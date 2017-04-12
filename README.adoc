@@ -3,7 +3,9 @@
 :nextflow-quickstart: http://www.nextflow.io/docs/latest/getstarted.html#get-started
 :macs2-outfiles: https://github.com/taoliu/MACS#output-files
 :pvalue: pass:q[[red]#___-log_10(P)___#]
+:circle-shield: https://circleci.com/gh/guigolab/chip-nf.svg?style=shield
 
+image:{circle-shield}["Circle CI", link="https://circleci.com/gh/guigolab/chip-nf"]
 
 A {nextflow}[Nextflow^] pipeline for processing ChIP-seq data.
 
