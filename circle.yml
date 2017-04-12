@@ -4,9 +4,7 @@ machine:
   services:
     - docker
   pre:
-    - curl -fsSL https://get.docker.com/builds/Linux/x86_64/docker-1.13.1.tgz | sudo tar --strip-components=1 -xvz -C /usr/bin
-    - echo 'DOCKER_OPTS="-s btrfs -D"' | sudo tee /etc/default/docker
-    - echo 'env container=yes' | sudo tee -a /etc/init/docker.conf
+    - curl -sSL https://s3.amazonaws.com/circle-downloads/install-circleci-docker.sh | bash -s -- 1.10.0
     
 test:
   pre:
