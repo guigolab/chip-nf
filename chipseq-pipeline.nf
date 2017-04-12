@@ -1,10 +1,10 @@
 params.dbFile = 'chipseq-pipeline.db'
-params.genome = ''
+params.genome = 'data/genome.fa'
 params.genomeIndex = ''
 params.genomeSize = 'hs'
 params.fragmentLength = 200
 params.help = false
-params.index = ''
+params.index = 'data/index.tsv'
 params.minMatchedBases = 0.8
 params.mismatches = 2
 params.multimaps = 10
@@ -56,6 +56,33 @@ if (!params.index) {
 }
 ////// End of input parameters check ////////
 
+////// Print parameters ///////
+log.info ''
+log.info 'C H I P - N F ~ ChIP-seq Pipeline'
+log.info '---------------------------------'
+log.info ''
+log.info "General parameters"
+log.info '------------------'
+log.info ''
+log.info "Index File             : ${params.index}"
+log.info "Genome File            : ${params.genome}"
+log.info "Genome Index File      : ${params.genomeIndex ?: '-'}"
+log.info "MACS2 Genome Size      : ${params.genomeSize}"
+log.info "Global Fragment Length : ${params.fragmentLength}"
+log.info "Database file          : ${params.dbFile}"
+log.info "Remove Duplicates      : ${params.removeDuplicates}"
+log.info "Shift                  : ${params.shift}"
+log.info "Rescale Peaks          : ${params.rescale}"
+log.info ''
+log.info "Mapping parameters"
+log.info '------------------'
+log.info ''
+log.info "Max Mismatches         : ${params.mismatches}"
+log.info "Max Multimaps          : ${params.multimaps}"
+log.info "Minimum Matched Bases  : ${params.minMatchedBases}"
+log.info "Low Quality Threshold  : ${params.qualityThreshold}"
+log.info ''
+
 genome = file(params.genome)
 index = file(params.index)
 
@@ -69,9 +96,18 @@ fastqs = Channel
   def controlId = list[3]
   def mark = list[4]
   def fragLen = list.size() == 6 ? list[5] as Integer : -1
-  if ( fragLen != -1) {
-    log.info "Using ${fragLen} as fragment length for ${mergeId}"
+  def message = '[INFO] '
+  if (params.shift) {
+      message += "Using global fragment length `${params.fragmentLength}` and compute shift size by "
+  } else {
+      message += "Using "
   }
+  if ( fragLen != -1) {
+    message += "fragment length `${fragLen}` for ${mergeId}"
+  } else {
+    message += "estimated fragment length for ${mergeId}"
+  }
+  log.info message
   def quality = fastq(path).qualityScore()
   [ mergeId, id, path, controlId, mark, fragLen, quality ]
 }
