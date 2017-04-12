@@ -28,8 +28,8 @@ You can then get the pipeline help:
 ----
 $ nextflow run chip-nf --help
 
-N E X T F L O W  ~  version 0.23.3
-Launching `./chipseq-pipeline.nf` [hopeful_roentgen] - revision: b993b6d058
+N E X T F L O W  ~  version 0.24.1
+Launching `guigolab/chip-nf` [nostalgic_franklin] - revision: 974a45c356 [master]
 
 C H I P - N F ~ ChIP-seq Pipeline
 ---------------------------------
@@ -53,6 +53,7 @@ Options:
     --remove-duplicates                 Remove duplicate alignments instead of just flagging them (Default: false).
     --rescale                           Rescale peak scores to conform to the format supported by the
                                         UCSC genome browser (score must be <1000) (Default: false).
+    --shift                             Move fragments ends and apply global extsize in peak calling. (Default: false).
 ----
 
 
@@ -77,6 +78,9 @@ The fields in the file correspond to:
 3. path to the fastq file to be processed
 4. identifier of the input or `-` if no control is used
 5. mark/histone or `input` if the line refers to a control
+6. sample fragment length (skips fragment length estimation with SPP) <1>
+
+<1> Optional
 
 
 == Output
@@ -116,7 +120,7 @@ The fields in the file correspond to:
 1. merge identifier
 2. path
 3. mark/histone
-4. estimated fragment length
+4. (estimated) fragment length
 5. data type
 6. NRF (Nonredundant Fraction)
 7. FRiP (Fraction of Reads in Peaks)
