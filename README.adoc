@@ -78,9 +78,7 @@ The fields in the file correspond to:
 3. path to the fastq file to be processed
 4. identifier of the input or `-` if no control is used
 5. mark/histone or `input` if the line refers to a control
-6. sample fragment length (skips fragment length estimation with SPP) <1>
-
-<1> Optional
+6. *optional* sample fragment length. If not specified the fragment length is estimated using SPP
 
 
 == Output
