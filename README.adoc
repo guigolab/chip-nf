@@ -27,7 +27,7 @@ Checking guigolab/chip-nf ...
  downloaded from https://github.com/guigolab/chip-nf.git
 ----
 
-You can then get the pipeline help:
+You can get the pipeline help with the following command:
 
 [source,bash]
 ----
