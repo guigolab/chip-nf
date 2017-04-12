@@ -9,7 +9,12 @@ A {nextflow}[Nextflow^] pipeline for processing ChIP-seq data.
 
 == Installing Nextflow
 
-Follow Nextflow documentation {nextflow-quickstart}[here^].
+Nextflow can be installed by using the following command:
+
+[source,bash]
+----
+curl -fsSL get.nextflow.io | bash
+----
 
 == Running the pipeline
 
