@@ -1,3 +1,6 @@
 WLP.K36m3.1	WLP.K36m3.1	data/WLP.K36m3.1.fastq.gz	-	H3K36m3	80
+WLP.K36m3.2	WLP.K36m3.2	data/WLP.K36m3.2.fastq.gz	-	H3K36m3
 AWP.K4m3.1	AWP.K4m3.1	data/AWP.K4m3.1.fastq.gz	I.AWP.K4m3.1	H3K4m3
 I.AWP.K4m3.1	I.AWP.K4m3.1	data/I.AWP.K4m3.1.fastq.gz	I.AWP.K4m3.1	input
+AWP.K4m3.2	AWP.K4m3.2	data/AWP.K4m3.2.fastq.gz	I.AWP.K4m3.2	H3K4m3
+I.AWP.K4m3.2	I.AWP.K4m3.2	data/I.AWP.K4m3.2.fastq.gz	I.AWP.K4m3.2	input
