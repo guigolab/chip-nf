@@ -1,10 +1,10 @@
 params.dbFile = 'chipseq-pipeline.db'
-params.genome = 'data/genome.fa'
+params.genome = '${baseDir}/data/genome.fa'
 params.genomeIndex = ''
 params.genomeSize = 'hs'
 params.fragmentLength = 200
 params.help = false
-params.index = 'data/index.tsv'
+params.index = '${baseDir}/data/index.tsv'
 params.minMatchedBases = 0.8
 params.mismatches = 2
 params.multimaps = 10
