@@ -99,7 +99,7 @@ fastqs = Channel
   def list = line.split()
   def mergeId = list[0]
   def id = list[1]
-  def path = file(list[2])
+  def path = resolveFile(list[2], index)
   def controlId = list[3]
   def mark = list[4]
   def fragLen = list.size() == 6 ? list[5] as Integer : -1
@@ -664,3 +664,21 @@ workflow.onComplete {
     log.info "Pipeline run completed."
     log.info "-----------------------"
 }
+
+/*
+ * Given a string path resolve it against the index file location.
+ * Params: 
+ * - str: a string value represting the file pah to be resolved
+ * - index: path location against which relative paths need to be resolved 
+ */
+def resolveFile( str, index ) {
+  if( str.startsWith('/') || str =~ /^[\w\d]*:\// ) {
+    return file(str)
+  }
+  else if( index instanceof Path ) {
+    return index.parent.resolve(str)
+  }
+  else {
+    return file(str) 
+  }
+} 
