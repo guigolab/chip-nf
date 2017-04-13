@@ -596,9 +596,9 @@ process zerone {
   def awkScaleMergedBed = '$0~/^#/ || $NF=$NF*1000'
   def awkMatrix2Bed = '$0~/^#/ || $0=$1 OFS $2 OFS $3 OFS $NF*1000'
   """
-  zerone -c ${params.zeroneMinConfidence} -0 ${control.join(",")} -1 ${bam.join(",")} > ${prefix}_zerone.01
+  zerone -c ${params.zeroneMinConfidence} -0 ${control.sort().join(",")} -1 ${bam.sort().join(",")} > ${prefix}_zerone.01
   awk -F"\\t" '${awkMatrix2Bed}' OFS="\\t" ${prefix}_zerone.01 > ${prefix}_zerone.bed
-  zerone -c ${params.zeroneMinConfidence} -l -0 ${control.join(",")} -1 ${bam.join(",")} | awk -F"\\t" '${awkScaleMergedBed}' OFS="\\t" > ${prefix}_zerone_merged.bed
+  zerone -c ${params.zeroneMinConfidence} -l -0 ${control.sort().join(",")} -1 ${bam.sort().join(",")} | awk -F"\\t" '${awkScaleMergedBed}' OFS="\\t" > ${prefix}_zerone_merged.bed
   """
 }
 
