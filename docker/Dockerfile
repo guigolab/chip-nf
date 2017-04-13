@@ -4,6 +4,8 @@ LABEL maintainer "Emilio Palumbo <emilio.palumbo@crg.eu>" \
       version "1.0" \
       description "ChIP-seq analysis pipeline image"
 
+ENV _ZERONE_VERSION 5af03a1
+
 ENV PATH=/phantompeakqualtools/:$PATH
 
 # install needed tools
@@ -48,3 +50,11 @@ RUN curl --header "Cookie: oraclelicense=accept-securebackup-cookie" -L http://d
 # install picard
 RUN curl -L -o /usr/local/bin/picard.jar https://github.com/broadinstitute/picard/releases/download/2.8.3/picard.jar \
   && chmod +x /usr/local/bin/picard.jar
+
+# install zerone
+RUN mkdir -p zerone && \
+    curl -fsSL https://github.com/nanakiksc/zerone/archive/${_ZERONE_VERSION}.tar.gz | tar xz --strip-components 1 -C zerone && \
+    make -C zerone && \
+    mv zerone/zerone /usr/local/bin && \
+    make clean -C zerone
+
