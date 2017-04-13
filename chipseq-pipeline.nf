@@ -1,19 +1,35 @@
+// Define defaults
+def defaults = [
+  genomeSize: 'hs',
+  fragmentLength: 200,
+  minMatchedBases: 0.8,
+  mismatches: 2,
+  multimaps: 10,
+  qualityThreshold: 26,
+  rescale: false,
+  removeDuplicates: false,
+  shift: false,
+  zeroneMinConfidence: 0,
+  replicatePattern: '.[12]',
+]
+
+
 params.dbFile = 'chipseq-pipeline.db'
 params.genome = "${baseDir}/data/genome.fa"
 params.genomeIndex = ''
-params.genomeSize = 'hs'
-params.fragmentLength = 200
+params.genomeSize = defaults.genomeSize
+params.fragmentLength = defaults.fragmentLength
 params.help = false
 params.index = "${baseDir}/data/index.tsv"
-params.minMatchedBases = 0.8
-params.mismatches = 2
-params.multimaps = 10
-params.qualityThreshold = 26
-params.rescale = false
-params.removeDuplicates = false
-params.shift = false
-params.zeroneMinConfidence  = 0
-params.replicatePattern = '.[12]'
+params.minMatchedBases = defaults.minMatchedBases
+params.mismatches = defaults.mismatches
+params.multimaps = defaults.multimaps
+params.qualityThreshold = defaults.qualityThreshold
+params.rescale = defaults.rescale
+params.removeDuplicates = defaults.removeDuplicates
+params.shift = defaults.shift
+params.zeroneMinConfidence  = defaults.zeroneMinConfidence
+params.replicatePattern = defaults.replicatePattern
 
 //print usage
 if (params.help) {
@@ -31,18 +47,18 @@ if (params.help) {
     log.info '    --genome GENOME_FILE                Reference genome file.'
     log.info '    --genome-index GENOME_INDEX_ FILE   Reference genome index file.'
     log.info '    --genome-size GENOME_SIZE           Reference genome size for MACS2 callpeaks. Must be one of' 
-    log.info "                                        MACS2 precomputed sizes: hs, mm, dm, ce. (Default: '${params.genomeSize}')"
-    log.info "    --replicate-pattern PATTERN         Glob pattern used to match replicates (Default: '${params.replicatePattern}')."
-    log.info "    --mismatches MISMATCHES             Sets the maximum number/percentage of mismatches allowed for a read (Default: '${params.mismatches}').  "
-    log.info "    --multimaps MULTIMAPS               Sets the maximum number of mappings allowed for a read (Default: '${params.multimaps}')."
-    log.info "    --min-matched-bases BASES           Sets the minimum number/percentage of bases that have to match with the reference (Default: '${params.minMatchedBases}')."
-    log.info "    --quality-threshold THRESHOLD       Sets the sequence quality threshold for a base to be considered as low-quality (Default: '${params.qualityThreshold}')."
-    log.info "    --fragment-length LENGTH            Sets the fragment length globally for all samples (Default: '${params.fragmentLength}')."
-    log.info "    --zerone-min-confidence CONFIDENCE  Make Zerone print targets with confidence higher than CONFIDENCE (Default: ${params.zeroneMinConfidence})."
-    log.info "    --remove-duplicates                 Remove duplicate alignments instead of just flagging them (Default: '${params.removeDuplicates}')."
+    log.info "                                        MACS2 precomputed sizes: hs, mm, dm, ce. (Default: '${defaults.genomeSize}')"
+    log.info "    --replicate-pattern PATTERN         Glob pattern used to match replicates (Default: '${defaults.replicatePattern}')."
+    log.info "    --mismatches MISMATCHES             Sets the maximum number/percentage of mismatches allowed for a read (Default: '${defaults.mismatches}').  "
+    log.info "    --multimaps MULTIMAPS               Sets the maximum number of mappings allowed for a read (Default: '${defaults.multimaps}')."
+    log.info "    --min-matched-bases BASES           Sets the minimum number/percentage of bases that have to match with the reference (Default: '${defaults.minMatchedBases}')."
+    log.info "    --quality-threshold THRESHOLD       Sets the sequence quality threshold for a base to be considered as low-quality (Default: '${defaults.qualityThreshold}')."
+    log.info "    --fragment-length LENGTH            Sets the fragment length globally for all samples (Default: '${defaults.fragmentLength}')."
+    log.info "    --zerone-min-confidence CONFIDENCE  Make Zerone print targets with confidence higher than CONFIDENCE (Default: ${defaults.zeroneMinConfidence})."
+    log.info "    --remove-duplicates                 Remove duplicate alignments instead of just flagging them (Default: '${defaults.removeDuplicates}')."
     log.info '    --rescale                           Rescale peak scores to conform to the format supported by the'
-    log.info "                                        UCSC genome browser (score must be <1000) (Default: '${params.rescale}')."
-    log.info "    --shift                             Move fragments ends and apply global extsize in peak calling. (Default: '${params.shift}')."
+    log.info "                                        UCSC genome browser (score must be <1000) (Default: '${defaults.rescale}')."
+    log.info "    --shift                             Move fragments ends and apply global extsize in peak calling. (Default: '${defaults.shift}')."
     log.info ''
     exit 1
 }
