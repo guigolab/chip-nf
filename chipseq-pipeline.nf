@@ -12,7 +12,7 @@ params.qualityThreshold = 26
 params.rescale = false
 params.removeDuplicates = false
 params.shift = false
-params.zeroneConfidence  = 0.99
+params.zeroneMinConfidence  = 0
 params.replicatePattern = '.[12]'
 
 //print usage
@@ -31,16 +31,18 @@ if (params.help) {
     log.info '    --genome GENOME_FILE                Reference genome file.'
     log.info '    --genome-index GENOME_INDEX_ FILE   Reference genome index file.'
     log.info '    --genome-size GENOME_SIZE           Reference genome size for MACS2 callpeaks. Must be one of' 
-    log.info '                                        MACS2 precomputed sizes: hs, mm, dm, ce. (Default: hs)'
-    log.info '    --mismatches MISMATCHES             Sets the maximum number/percentage of mismatches allowed for a read (Default: 2).'
-    log.info '    --multimaps MULTIMAPS               Sets the maximum number of mappings allowed for a read (Default: 10).'
-    log.info '    --min-matched-bases BASES           Sets the minimum number/percentage of bases that have to match with the reference (Default: 0.80).'
-    log.info '    --quality-threshold THRESHOLD       Sets the sequence quality threshold for a base to be considered as low-quality (Default: 26).'
-    log.info '    --fragment-length LENGTH            Sets the fragment length globally for all samples (Default: 200).'
-    log.info '    --remove-duplicates                 Remove duplicate alignments instead of just flagging them (Default: false).'
+    log.info "                                        MACS2 precomputed sizes: hs, mm, dm, ce. (Default: '${params.genomeSize}')"
+    log.info "    --replicate-pattern PATTERN         Glob pattern used to match replicates (Default: '${params.replicatePattern}')."
+    log.info "    --mismatches MISMATCHES             Sets the maximum number/percentage of mismatches allowed for a read (Default: '${params.mismatches}').  "
+    log.info "    --multimaps MULTIMAPS               Sets the maximum number of mappings allowed for a read (Default: '${params.multimaps}')."
+    log.info "    --min-matched-bases BASES           Sets the minimum number/percentage of bases that have to match with the reference (Default: '${params.minMatchedBases}')."
+    log.info "    --quality-threshold THRESHOLD       Sets the sequence quality threshold for a base to be considered as low-quality (Default: '${params.qualityThreshold}')."
+    log.info "    --fragment-length LENGTH            Sets the fragment length globally for all samples (Default: '${params.fragmentLength}')."
+    log.info "    --zerone-min-confidence CONFIDENCE  Make Zerone print targets with confidence higher than CONFIDENCE (Default: ${params.zeroneMinConfidence})."
+    log.info "    --remove-duplicates                 Remove duplicate alignments instead of just flagging them (Default: '${params.removeDuplicates}')."
     log.info '    --rescale                           Rescale peak scores to conform to the format supported by the'
-    log.info '                                        UCSC genome browser (score must be <1000) (Default: false).'
-    log.info '    --shift                             Move fragments ends and apply global extsize in peak calling. (Default: false).'
+    log.info "                                        UCSC genome browser (score must be <1000) (Default: '${params.rescale}')."
+    log.info "    --shift                             Move fragments ends and apply global extsize in peak calling. (Default: '${params.shift}')."
     log.info ''
     exit 1
 }
@@ -87,7 +89,7 @@ log.info ''
 log.info "Zerone parameters"
 log.info '-----------------'
 log.info ''
-log.info "Confidence Threshold   : ${params.zeroneConfidence}"
+log.info "Confidence Threshold   : ${params.zeroneMinConfidence}"
 log.info ''
 
 genome = file(params.genome)
@@ -578,9 +580,9 @@ process zerone {
   def awkScaleMergedBed = '$0~/^#/ || $NF=$NF*1000'
   def awkMatrix2Bed = '$0~/^#/ || $0=$1 OFS $2 OFS $3 OFS $NF*1000'
   """
-  zerone -c ${params.zeroneConfidence} -0 ${control.join(",")} -1 ${bam.join(",")} > ${prefix}_zerone.01
+  zerone -c ${params.zeroneMinConfidence} -0 ${control.join(",")} -1 ${bam.join(",")} > ${prefix}_zerone.01
   awk -F"\\t" '${awkMatrix2Bed}' OFS="\\t" ${prefix}_zerone.01 > ${prefix}_zerone.bed
-  zerone -c ${params.zeroneConfidence} -l -0 ${control.join(",")} -1 ${bam.join(",")} | awk -F"\\t" '${awkScaleMergedBed}' OFS="\\t" > ${prefix}_zerone_merged.bed
+  zerone -c ${params.zeroneMinConfidence} -l -0 ${control.join(",")} -1 ${bam.join(",")} | awk -F"\\t" '${awkScaleMergedBed}' OFS="\\t" > ${prefix}_zerone_merged.bed
   """
 }
 
