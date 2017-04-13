@@ -12,6 +12,8 @@ params.qualityThreshold = 26
 params.rescale = false
 params.removeDuplicates = false
 params.shift = false
+params.zeroneConfidence  = 0.99
+params.replicatePattern = '.[12]'
 
 //print usage
 if (params.help) {
@@ -81,6 +83,11 @@ log.info "Max Mismatches         : ${params.mismatches}"
 log.info "Max Multimaps          : ${params.multimaps}"
 log.info "Minimum Matched Bases  : ${params.minMatchedBases}"
 log.info "Low Quality Threshold  : ${params.qualityThreshold}"
+log.info ''
+log.info "Zerone parameters"
+log.info '-----------------'
+log.info ''
+log.info "Confidence Threshold   : ${params.zeroneConfidence}"
 log.info ''
 
 genome = file(params.genome)
@@ -344,12 +351,18 @@ controlBams
 .filter {
   it[2] != '-'
 }
-.cross(inputBams) { it[2] }
+.phase(inputBams) { it[2] }
 .tap { crossedBams } 
 .map { c, t ->
   [t[0], t[1], c[1], t[3], t[4], t[5]]
 }
-.into { bamsNarrowPeakCall; bamsBroadPeakCall }
+.tap { bamsNarrowPeakCall; bamsBroadPeakCall }
+.map { replicateId, bam, control, mark, fragLen, view ->
+  sampleId = replicateId.replaceAll(/${params.replicatePattern}$/,'')
+  [sampleId, bam, control, mark, view]
+}
+.groupTuple(by:[0,3,4])
+.into {bamsZerone}
 
 process narrowPeakCall {
   
@@ -551,6 +564,26 @@ process pvalSignalTracks {
   """
 }
 
+process zerone {
+
+  input:
+  set prefix, file(bam), file(control), mark, view from bamsZerone
+
+  output:
+  set prefix, file("${prefix}_zerone.01"), mark, val("zeroneMatrix") into zeroneMatrixFiles
+  set prefix, file("${prefix}_zerone.bed"), mark, val("zeroneBed") into zeroneBedFiles
+  set prefix, file("${prefix}_zerone_merged.bed"), mark, val("zeroneMergedBed") into zeroneMergedBedFiles
+
+  script:
+  def awkScaleMergedBed = '$0~/^#/ || $NF=$NF*1000'
+  def awkMatrix2Bed = '$0~/^#/ || $0=$1 OFS $2 OFS $3 OFS $NF*1000'
+  """
+  zerone -c ${params.zeroneConfidence} -0 ${control.join(",")} -1 ${bam.join(",")} > ${prefix}_zerone.01
+  awk -F"\\t" '${awkMatrix2Bed}' OFS="\\t" ${prefix}_zerone.01 > ${prefix}_zerone.bed
+  zerone -c ${params.zeroneConfidence} -l -0 ${control.join(",")} -1 ${bam.join(",")} | awk -F"\\t" '${awkScaleMergedBed}' OFS="\\t" > ${prefix}_zerone_merged.bed
+  """
+}
+
 process NRF {
   input:
   set prefix, file(bam), controlId, mark, view from bams4NRF
@@ -614,11 +647,18 @@ metrics.cross(
   .map {
     it + [ '-', '-' ]
   }
+).mix(
+  zeroneMatrixFiles.mix(zeroneBedFiles).mix(zeroneMergedBedFiles)
+  .map { prefix, path, mark, view ->
+    [prefix, path, mark, '-', view, '-', '-']
+  }
 )
 .collectFile(name: pdb.name, storeDir: pdb.parent, newLine: true) { prefix, path, mark, fragLen, view, nrf, frip ->
     [ prefix, path, mark, fragLen, view, nrf, frip ].join("\t")
 }
-.subscribe {
+
+
+workflow.onComplete {
     log.info ""
     log.info "-----------------------"
     log.info "Pipeline run completed."
