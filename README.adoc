@@ -6,8 +6,8 @@
 :circle-shield: https://circleci.com/gh/guigolab/chip-nf.svg?style=shield
 :nf-shield: https://img.shields.io/badge/nextflow-%E2%89%A50.17.0-blue.svg
 
-image:{nf-shield}["Nextflow", link="https://nextflow.io"]
-image:{circle-shield}["CircleCI status", link="https://circleci.com/gh/guigolab/chip-nf"]
+image:{nf-shield}["Nextflow", link="https://nextflow.io", window="_blank"]
+image:{circle-shield}["CircleCI status", link="https://circleci.com/gh/guigolab/chip-nf", window="_blank"]
 
 A {nextflow}[Nextflow^] pipeline for processing ChIP-seq data.
 
