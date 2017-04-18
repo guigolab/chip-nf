@@ -686,7 +686,7 @@ workflow.onComplete {
 /*
  * Given a string path resolve it against the index file location.
  * Params: 
- * - str: a string value represting the file pah to be resolved
+ * - str: a string value represting the file path to be resolved
  * - index: path location against which relative paths need to be resolved 
  */
 def resolveFile( str, index ) {
