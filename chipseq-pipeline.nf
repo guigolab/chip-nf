@@ -369,7 +369,7 @@ controlBams
 .filter {
   it[2] != '-'
 }
-.phase(inputBams) { it[2] }
+.cross(inputBams) { it[2] }
 .tap { crossedBams } 
 .map { c, t ->
   [t[0], t[1], c[1], t[3], t[4], t[5]]
