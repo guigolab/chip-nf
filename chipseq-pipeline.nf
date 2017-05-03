@@ -400,7 +400,7 @@ process narrowPeakCall {
   macs2 callpeak -t ${bam} -c ${control} -n ${prefix} --outdir peakOut \
                  -f BAM -g ${params.genomeSize} -p 1e-2 \
                  --nomodel --shift=${shiftSize} --extsize=${extSize} \
-                 --keep-dup all -B --SPMR
+                 --keep-dup all -B --SPMR --tempdir \${TMPDIR-/tmp}
   """
 }
 
@@ -422,7 +422,7 @@ process narrowPeakCallNoInput {
   macs2 callpeak -t ${bam} -n ${prefix} --outdir peakOut \
                  -f BAM -g ${params.genomeSize} -p 1e-2 \
                  --nomodel --shift=${shiftSize} --extsize=${extSize} \
-                 --keep-dup all -B --SPMR
+                 --keep-dup all -B --SPMR --tempdir \${TMPDIR-/tmp}
   """
 }
 
@@ -454,7 +454,7 @@ process broadPeakCall {
   macs2 callpeak -t ${bam} -c ${control} -n ${prefix} --outdir peakOut \
                  -f BAM -g ${params.genomeSize} -p 1e-2 --broad \
                  --nomodel --shift=${shiftSize} --extsize=${extSize} \
-                 --keep-dup all
+                 --keep-dup all --tempdir \${TMPDIR-/tmp}
   """
 }
 
@@ -476,7 +476,7 @@ process broadPeakCallNoInput {
   macs2 callpeak -t ${bam} -n ${prefix} --outdir peakOut \
                  -f BAM -g ${params.genomeSize} -p 1e-2 --broad \
                  --nomodel --shift=${shiftSize} --extsize=${extSize} \
-                 --keep-dup all
+                 --keep-dup all --tempdir \${TMPDIR-/tmp}
   """
 }
 
