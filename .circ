@@ -1,0 +1,6 @@
+# add project folder to PATH
+projectDir=$(dirname $(realpath $_))
+export PATH=${projectDir}:$PATH
+
+# add command autocompletion
+complete -W "run validate cleanup" ci
