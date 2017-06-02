@@ -12,11 +12,13 @@ case "$1" in
     nextflow run . -resume $@
     ;;
   validate)
+    shift
+    f=$(realpath ${1-data/md5s})
     echo "Validating test results..." >&2
     [[ -s ${DB_FILE} ]] || false
     mkdir -p ${VALIDATE_DIR} && cd ${VALIDATE_DIR}
     cut -f 2 ../${DB_FILE} | xargs -I{} ln -fs {}
-    md5sum -c ../data/md5s
+    md5sum -c ${f}
     ;;
   cleanup)
     echo "Cleaning up test results..." >&2

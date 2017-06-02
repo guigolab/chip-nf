@@ -2,5 +2,41 @@
 projectDir=$(dirname $(realpath $_))
 export PATH=${projectDir}:$PATH
 
+NXF_OPTS=$(nextflow help run | egrep -o '\-\w+\.?' | sort -u)
+PIPE_OPTS=$(egrep log chipseq-pipeline.nf | egrep -o '\-{2}[^ ]+ ')
+
+_ci() {
+    local cur prev
+
+    cur=${COMP_WORDS[COMP_CWORD]}
+    prev=${COMP_WORDS[COMP_CWORD-1]}
+
+    case ${COMP_CWORD} in
+        1)
+            COMPREPLY=($(compgen -W "run validate cleanup" ${cur}))
+            ;;
+        [2-9]|[1-9][0-9])
+            case ${COMP_WORDS[1]} in
+                run)
+                    case "${cur}" in
+                        -*)
+                            COMPREPLY=($(compgen -o default -W "$NXF_OPTS $PIPE_OPTS" -- ${cur}))
+                            ;;
+                        *)
+                            COMPREPLY=($(compgen -o default))
+                            ;;
+                    esac
+                    ;;
+                validate)
+                    COMPREPLY=($(compgen -f ${cur}))
+                    ;;
+            esac
+            ;;
+        *)
+            COMPREPLY=()
+            ;;
+    esac
+}
+
 # add command autocompletion
-complete -W "run validate cleanup" ci
+complete -o nospace -F _ci ci
