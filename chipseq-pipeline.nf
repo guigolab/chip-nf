@@ -1,35 +1,38 @@
 // Define defaults
 def defaults = [
+  shift: false,
+  mismatches: 2,
+  multimaps: 10,
+  rescale: false,
   genomeSize: 'hs',
   fragmentLength: 200,
   minMatchedBases: 0.8,
-  mismatches: 2,
-  multimaps: 10,
   qualityThreshold: 26,
-  rescale: false,
-  removeDuplicates: false,
-  shift: false,
   zeroneMinConfidence: 0,
+  removeDuplicates: false,
   replicatePattern: '.[12]',
+  dbFile: 'chipseq-pipeline.db',
 ]
 
-
-params.dbFile = 'chipseq-pipeline.db'
-params.genome = "${baseDir}/data/genome.fa"
-params.genomeIndex = ''
-params.genomeSize = defaults.genomeSize
-params.fragmentLength = defaults.fragmentLength
-params.help = false
+// params for test run
 params.index = "${baseDir}/data/index.tsv"
-params.minMatchedBases = defaults.minMatchedBases
-params.mismatches = defaults.mismatches
-params.multimaps = defaults.multimaps
-params.qualityThreshold = defaults.qualityThreshold
-params.rescale = defaults.rescale
-params.removeDuplicates = defaults.removeDuplicates
+params.genome = "${baseDir}/data/genome.fa"
+
+// params defaults
+params.help = false
+params.genomeIndex = ''
 params.shift = defaults.shift
-params.zeroneMinConfidence  = defaults.zeroneMinConfidence
+params.dbFile = defaults.dbFile
+params.rescale = defaults.rescale
+params.multimaps = defaults.multimaps
+params.genomeSize = defaults.genomeSize
+params.mismatches = defaults.mismatches
+params.fragmentLength = 0
+params.minMatchedBases = defaults.minMatchedBases
+params.qualityThreshold = defaults.qualityThreshold
+params.removeDuplicates = defaults.removeDuplicates
 params.replicatePattern = defaults.replicatePattern
+params.zeroneMinConfidence  = defaults.zeroneMinConfidence
 
 //print usage
 if (params.help) {
@@ -45,9 +48,10 @@ if (params.help) {
     log.info '    --help                              Show this message and exit.'
     log.info '    --index TSV_FILE                    Tab separted file containing information about the data.'
     log.info '    --genome GENOME_FILE                Reference genome file.'
-    log.info '    --genome-index GENOME_INDEX_ FILE   Reference genome index file.'
+    log.info '    --genome-index GENOME_INDEX_FILE    Reference genome index file.'
     log.info '    --genome-size GENOME_SIZE           Reference genome size for MACS2 callpeaks. Must be one of' 
     log.info "                                        MACS2 precomputed sizes: hs, mm, dm, ce. (Default: '${defaults.genomeSize}')"
+    log.info "    --db-file FILE                      Output file where to store results information (Default: '${defaults.dbFile}')"
     log.info "    --replicate-pattern PATTERN         Glob pattern used to match replicates (Default: '${defaults.replicatePattern}')."
     log.info "    --mismatches MISMATCHES             Sets the maximum number/percentage of mismatches allowed for a read (Default: '${defaults.mismatches}').  "
     log.info "    --multimaps MULTIMAPS               Sets the maximum number of mappings allowed for a read (Default: '${defaults.multimaps}')."
@@ -58,7 +62,9 @@ if (params.help) {
     log.info "    --remove-duplicates                 Remove duplicate alignments instead of just flagging them (Default: '${defaults.removeDuplicates}')."
     log.info '    --rescale                           Rescale peak scores to conform to the format supported by the'
     log.info "                                        UCSC genome browser (score must be <1000) (Default: '${defaults.rescale}')."
-    log.info "    --shift                             Move fragments ends and apply global extsize in peak calling. (Default: '${defaults.shift}')."
+    log.info "    --shift                             Move fragments ends and apply global extsize in peak calling (Default: '${defaults.shift}')."
+    log.info "                                        If '--shift' is set and '--fragment-length' is not sepcified the global fragmenth length"
+    log.info "                                        is forced to '200'."
     log.info ''
     exit 1
 }
@@ -74,6 +80,7 @@ if (!params.genome) {
 if (!params.index) {
   exit 1, "Please specify the input table file"
 }
+
 ////// End of input parameters check ////////
 
 ////// Print parameters ///////
@@ -114,20 +121,23 @@ index = file(params.index)
 fastqs = Channel
 .from(index.readLines())
 .map { line ->
-  def list = line.split()
+  def list = line.tokenize()
   def mergeId = list[0]
   def id = list[1]
   def path = resolveFile(list[2], index)
   def controlId = list[3]
   def mark = list[4]
-  def fragLen = list.size() == 6 ? list[5] as Integer : -1
+  def fragLen = params.fragmentLength
+  if ( params.shift || !fragLen ) {
+    fragLen = list[5] as Integer
+  } 
   def message = '[INFO] '
-  if (params.shift) {
-      message += "Using global fragment length `${params.fragmentLength}` and compute shift size by "
+  if ( params.shift ) {
+      message += "Using global fragment length `${params.fragmentLength ?: defaults.fragmentLength}` and compute shift size by "
   } else {
       message += "Using "
   }
-  if ( fragLen != -1) {
+  if ( fragLen ) {
     message += "fragment length `${fragLen}` for ${mergeId}"
   } else {
     message += "estimated fragment length for ${mergeId}"
@@ -301,7 +311,7 @@ process readCount {
 
 process model {
   when:
-  fragLen == -1
+  !fragLen
 
   input:
   set prefix, file(bam), controlId, mark, fragLen, view from modelBams
@@ -382,6 +392,8 @@ controlBams
 .groupTuple(by:[0,3,4])
 .into {bamsZerone}
 
+def globalFragmentLength = params.fragmentLength ?: defaults.fragmentLength
+
 process narrowPeakCall {
   
   input:
@@ -393,8 +405,8 @@ process narrowPeakCall {
   set prefix, file("peakOut/${prefix}*.bdg"), mark, fragLen, val("pileupBedGraphs") into pileupBedGraphFiles, pileupBedGraphFilesPileupSignalTracks, pileupBedGraphFilesFeSignalTracks
   
   script:
-  def extSize = params.shift ? params.fragmentLength : fragLen
-  def shiftSize = params.shift ? Math.round((fragLen - params.fragmentLength) / 2) : 0
+  def extSize = params.shift ? globalFragmentLength : fragLen
+  def shiftSize = params.shift ? Math.round((fragLen - globalFragmentLength) / 2) : 0
   """
   # narrow peaks and preliminary signal tracks
   macs2 callpeak -t ${bam} -c ${control} -n ${prefix} --outdir peakOut \
@@ -415,8 +427,8 @@ process narrowPeakCallNoInput {
   set prefix, file("peakOut/${prefix}*.bdg"), mark, fragLen, val("pileupBedGraphs") into pileupBedGraphFilesNoInput, pileupBedGraphFilesPileupSignalTracksNoInput, pileupBedGraphFilesFeSignalTracksNoInput
   
   script:
-  def extSize = params.shift ? params.fragmentLength : fragLen
-  def shiftSize = params.shift ? Math.round((fragLen - params.fragmentLength) / 2) : 0
+  def extSize = params.shift ? globalFragmentLength : fragLen
+  def shiftSize = params.shift ? Math.round((fragLen - globalFragmentLength) / 2) : 0
   """
   # narrow peaks and preliminary signal tracks
   macs2 callpeak -t ${bam} -n ${prefix} --outdir peakOut \
@@ -447,8 +459,8 @@ process broadPeakCall {
   set prefix, file("peakOut/${prefix}_peaks.gappedPeak"), mark, fragLen, val("gappedPeak") into gappedPeakFiles
 
   script:
-  def extSize = params.shift ? params.fragmentLength : fragLen
-  def shiftSize = params.shift ? Math.round((fragLen - params.fragmentLength) / 2) : 0
+  def extSize = params.shift ? globalFragmentLength : fragLen
+  def shiftSize = params.shift ? Math.round((fragLen - globalFragmentLength) / 2) : 0
   """
   # Broad and Gapped Peaks
   macs2 callpeak -t ${bam} -c ${control} -n ${prefix} --outdir peakOut \
@@ -469,8 +481,8 @@ process broadPeakCallNoInput {
   set prefix, file("peakOut/${prefix}_peaks.gappedPeak"), mark, fragLen, val("gappedPeak") into gappedPeakFilesNoInput
 
   script:
-  def extSize = params.shift ? params.fragmentLength : fragLen
-  def shiftSize = params.shift ? Math.round((fragLen - params.fragmentLength) / 2) : 0
+  def extSize = params.shift ? globalFragmentLength : fragLen
+  def shiftSize = params.shift ? Math.round((fragLen - globalFragmentLength) / 2) : 0
   """
   # Broad and Gapped Peaks
   macs2 callpeak -t ${bam} -n ${prefix} --outdir peakOut \
