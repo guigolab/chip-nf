@@ -5,6 +5,14 @@ set -o pipefail
 DB_FILE=chipseq-pipeline.db
 VALIDATE_DIR=validate-ci
 
+getPath() {
+    if [ -n "$(type -a realpath)" ]; then
+        realpath $@
+    else
+        readlink -f $@
+    fi  
+}
+
 case "$1" in
   run)
     shift
@@ -13,7 +21,7 @@ case "$1" in
     ;;
   validate)
     shift
-    f=$(realpath ${1-data/md5s})
+    f=$(getPath ${1-data/md5s})
     echo "Validating test results..." >&2
     [[ -s ${DB_FILE} ]] || false
     mkdir -p ${VALIDATE_DIR} && cd ${VALIDATE_DIR}
