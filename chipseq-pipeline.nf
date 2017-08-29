@@ -616,7 +616,7 @@ process zerone {
 
 process NRF {
   input:
-  set prefix, file(bam), controlId, mark, view from bams4NRF
+  set prefix, file(bam), controlId, mark, fragLen, view from bams4NRF
 
   output:
   set prefix, stdout into NRFBams
