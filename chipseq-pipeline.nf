@@ -265,7 +265,7 @@ singleBams
 .map { mergeId, prefix, bam, controlId, mark, fragLen, view ->
   [ mergeId, bam, controlId, mark, fragLen, view].flatten()
 }
-.into { bamsMarkDup }
+.set { bamsMarkDup }
 
 
 process markDup {
@@ -390,7 +390,7 @@ controlBams
   [sampleId, bam, control, mark, view]
 }
 .groupTuple(by:[0,3,4])
-.into {bamsZerone}
+.set {bamsZerone}
 
 def globalFragmentLength = params.fragmentLength ?: defaults.fragmentLength
 
@@ -446,7 +446,7 @@ crossedBams.map{ c, t ->
   def count = treat < control ? treat : control
   [s[0], s[1], s[2], s[3], count/1000000, s[4]]
 }
-.into{ pileupBedGraphFilesPvalSignalTracks }
+.set{ pileupBedGraphFilesPvalSignalTracks }
 
 process broadPeakCall {
   
