@@ -12,6 +12,7 @@ def defaults = [
   removeDuplicates: false,
   replicatePattern: '.[12]',
   dbFile: 'chipseq-pipeline.db',
+  tmpDirMACS2: '.',
 ]
 
 // params for test run
@@ -33,6 +34,7 @@ params.qualityThreshold = defaults.qualityThreshold
 params.removeDuplicates = defaults.removeDuplicates
 params.replicatePattern = defaults.replicatePattern
 params.zeroneMinConfidence  = defaults.zeroneMinConfidence
+params.tmpDirMACS2 = defaults.tmpDirMACS2
 
 //print usage
 if (params.help) {
@@ -412,7 +414,7 @@ process narrowPeakCall {
   macs2 callpeak -t ${bam} -c ${control} -n ${prefix} --outdir peakOut \
                  -f BAM -g ${params.genomeSize} -p 1e-2 \
                  --nomodel --shift=${shiftSize} --extsize=${extSize} \
-                 --keep-dup all -B --SPMR --tempdir \${TMPDIR-/tmp}
+                 --keep-dup all -B --SPMR --tempdir ${params.tmpDirMACS2}
   """
 }
 
@@ -434,7 +436,7 @@ process narrowPeakCallNoInput {
   macs2 callpeak -t ${bam} -n ${prefix} --outdir peakOut \
                  -f BAM -g ${params.genomeSize} -p 1e-2 \
                  --nomodel --shift=${shiftSize} --extsize=${extSize} \
-                 --keep-dup all -B --SPMR --tempdir \${TMPDIR-/tmp}
+                 --keep-dup all -B --SPMR --tempdir ${params.tmpDirMACS2}
   """
 }
 
@@ -466,7 +468,7 @@ process broadPeakCall {
   macs2 callpeak -t ${bam} -c ${control} -n ${prefix} --outdir peakOut \
                  -f BAM -g ${params.genomeSize} -p 1e-2 --broad \
                  --nomodel --shift=${shiftSize} --extsize=${extSize} \
-                 --keep-dup all --tempdir \${TMPDIR-/tmp}
+                 --keep-dup all --tempdir ${params.tmpDirMACS2}
   """
 }
 
@@ -488,7 +490,7 @@ process broadPeakCallNoInput {
   macs2 callpeak -t ${bam} -n ${prefix} --outdir peakOut \
                  -f BAM -g ${params.genomeSize} -p 1e-2 --broad \
                  --nomodel --shift=${shiftSize} --extsize=${extSize} \
-                 --keep-dup all --tempdir \${TMPDIR-/tmp}
+                 --keep-dup all --tempdir ${params.tmpDirMACS2}
   """
 }
 
