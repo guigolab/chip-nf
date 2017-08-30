@@ -2,8 +2,8 @@
 projectDir=$(dirname $(realpath $_))
 export PATH=${projectDir}:$PATH
 
-NXF_OPTS=$(nextflow help run | egrep -o '\-\w+\.?' | sort -u)
-PIPE_OPTS=$(egrep log chipseq-pipeline.nf | egrep -o '\-{2}[^ ]+ ')
+NXF_OPTIONS=$(nextflow help run | egrep -o '\-\w+\.?' | sort -u)
+PIPE_OPTIONS=$(egrep log chipseq-pipeline.nf | egrep -o '\-{2}[^ ]+ ')
 
 _ci() {
     local cur prev
@@ -20,7 +20,7 @@ _ci() {
                 run)
                     case "${cur}" in
                         -*)
-                            COMPREPLY=($(compgen -o default -W "$NXF_OPTS $PIPE_OPTS" -- ${cur}))
+                            COMPREPLY=($(compgen -o default -W "$NXF_OPTIONS $PIPE_OPTIONS" -- ${cur}))
                             ;;
                         *)
                             COMPREPLY=($(compgen -o default))
