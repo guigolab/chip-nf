@@ -1,17 +1,40 @@
-params.dbFile = 'chipseq-pipeline.db'
-params.genome = 'data/genome.fa'
-params.genomeIndex = ''
-params.genomeSize = 'hs'
-params.fragmentLength = 200
+// Define defaults
+def defaults = [
+  shift: false,
+  mismatches: 2,
+  multimaps: 10,
+  rescale: false,
+  genomeSize: 'hs',
+  fragmentLength: 200,
+  minMatchedBases: 0.8,
+  qualityThreshold: 26,
+  zeroneMinConfidence: 0,
+  removeDuplicates: false,
+  replicatePattern: '.[12]',
+  dbFile: 'chipseq-pipeline.db',
+  tmpDirMACS2: '.',
+]
+
+// params for test run
+params.index = "${baseDir}/data/index.tsv"
+params.genome = "${baseDir}/data/genome.fa"
+
+// params defaults
 params.help = false
-params.index = 'data/index.tsv'
-params.minMatchedBases = 0.8
-params.mismatches = 2
-params.multimaps = 10
-params.qualityThreshold = 26
-params.rescale = false
-params.removeDuplicates = false
-params.shift = false
+params.genomeIndex = ''
+params.shift = defaults.shift
+params.dbFile = defaults.dbFile
+params.rescale = defaults.rescale
+params.multimaps = defaults.multimaps
+params.genomeSize = defaults.genomeSize
+params.mismatches = defaults.mismatches
+params.fragmentLength = 0
+params.minMatchedBases = defaults.minMatchedBases
+params.qualityThreshold = defaults.qualityThreshold
+params.removeDuplicates = defaults.removeDuplicates
+params.replicatePattern = defaults.replicatePattern
+params.zeroneMinConfidence  = defaults.zeroneMinConfidence
+params.tmpDirMACS2 = defaults.tmpDirMACS2
 
 //print usage
 if (params.help) {
@@ -27,18 +50,23 @@ if (params.help) {
     log.info '    --help                              Show this message and exit.'
     log.info '    --index TSV_FILE                    Tab separted file containing information about the data.'
     log.info '    --genome GENOME_FILE                Reference genome file.'
-    log.info '    --genome-index GENOME_INDEX_ FILE   Reference genome index file.'
+    log.info '    --genome-index GENOME_INDEX_FILE    Reference genome index file.'
     log.info '    --genome-size GENOME_SIZE           Reference genome size for MACS2 callpeaks. Must be one of' 
-    log.info '                                        MACS2 precomputed sizes: hs, mm, dm, ce. (Default: hs)'
-    log.info '    --mismatches MISMATCHES             Sets the maximum number/percentage of mismatches allowed for a read (Default: 2).'
-    log.info '    --multimaps MULTIMAPS               Sets the maximum number of mappings allowed for a read (Default: 10).'
-    log.info '    --min-matched-bases BASES           Sets the minimum number/percentage of bases that have to match with the reference (Default: 0.80).'
-    log.info '    --quality-threshold THRESHOLD       Sets the sequence quality threshold for a base to be considered as low-quality (Default: 26).'
-    log.info '    --fragment-length LENGTH            Sets the fragment length globally for all samples (Default: 200).'
-    log.info '    --remove-duplicates                 Remove duplicate alignments instead of just flagging them (Default: false).'
+    log.info "                                        MACS2 precomputed sizes: hs, mm, dm, ce. (Default: '${defaults.genomeSize}')"
+    log.info "    --db-file FILE                      Output file where to store results information (Default: '${defaults.dbFile}')"
+    log.info "    --replicate-pattern PATTERN         Glob pattern used to match replicates (Default: '${defaults.replicatePattern}')."
+    log.info "    --mismatches MISMATCHES             Sets the maximum number/percentage of mismatches allowed for a read (Default: '${defaults.mismatches}').  "
+    log.info "    --multimaps MULTIMAPS               Sets the maximum number of mappings allowed for a read (Default: '${defaults.multimaps}')."
+    log.info "    --min-matched-bases BASES           Sets the minimum number/percentage of bases that have to match with the reference (Default: '${defaults.minMatchedBases}')."
+    log.info "    --quality-threshold THRESHOLD       Sets the sequence quality threshold for a base to be considered as low-quality (Default: '${defaults.qualityThreshold}')."
+    log.info "    --fragment-length LENGTH            Sets the fragment length globally for all samples (Default: '${defaults.fragmentLength}')."
+    log.info "    --zerone-min-confidence CONFIDENCE  Make Zerone print targets with confidence higher than CONFIDENCE (Default: ${defaults.zeroneMinConfidence})."
+    log.info "    --remove-duplicates                 Remove duplicate alignments instead of just flagging them (Default: '${defaults.removeDuplicates}')."
     log.info '    --rescale                           Rescale peak scores to conform to the format supported by the'
-    log.info '                                        UCSC genome browser (score must be <1000) (Default: false).'
-    log.info '    --shift                             Move fragments ends and apply global extsize in peak calling. (Default: false).'
+    log.info "                                        UCSC genome browser (score must be <1000) (Default: '${defaults.rescale}')."
+    log.info "    --shift                             Move fragments ends and apply global extsize in peak calling (Default: '${defaults.shift}')."
+    log.info "                                        If '--shift' is set and '--fragment-length' is not sepcified the global fragmenth length"
+    log.info "                                        is forced to '200'."
     log.info ''
     exit 1
 }
@@ -54,6 +82,7 @@ if (!params.genome) {
 if (!params.index) {
   exit 1, "Please specify the input table file"
 }
+
 ////// End of input parameters check ////////
 
 ////// Print parameters ///////
@@ -82,6 +111,11 @@ log.info "Max Multimaps          : ${params.multimaps}"
 log.info "Minimum Matched Bases  : ${params.minMatchedBases}"
 log.info "Low Quality Threshold  : ${params.qualityThreshold}"
 log.info ''
+log.info "Zerone parameters"
+log.info '-----------------'
+log.info ''
+log.info "Confidence Threshold   : ${params.zeroneMinConfidence}"
+log.info ''
 
 genome = file(params.genome)
 index = file(params.index)
@@ -89,20 +123,23 @@ index = file(params.index)
 fastqs = Channel
 .from(index.readLines())
 .map { line ->
-  def list = line.split()
+  def list = line.tokenize()
   def mergeId = list[0]
   def id = list[1]
-  def path = file(list[2])
+  def path = resolveFile(list[2], index)
   def controlId = list[3]
   def mark = list[4]
-  def fragLen = list.size() == 6 ? list[5] as Integer : -1
+  def fragLen = params.fragmentLength
+  if ( params.shift || !fragLen ) {
+    fragLen = list[5] as Integer
+  } 
   def message = '[INFO] '
-  if (params.shift) {
-      message += "Using global fragment length `${params.fragmentLength}` and compute shift size by "
+  if ( params.shift ) {
+      message += "Using global fragment length `${params.fragmentLength ?: defaults.fragmentLength}` and compute shift size by "
   } else {
       message += "Using "
   }
-  if ( fragLen != -1) {
+  if ( fragLen ) {
     message += "fragment length `${fragLen}` for ${mergeId}"
   } else {
     message += "estimated fragment length for ${mergeId}"
@@ -194,7 +231,7 @@ process mapping {
 singleBams = Channel.create()
 groupedBams = Channel.create()
 
-bams.groupTuple(by: [0,3,4])
+bams.groupTuple(by: [0,3,4,5,6])
 .choice(singleBams, groupedBams) {
   it[2].size() > 1 ? 1 : 0
 }
@@ -209,7 +246,7 @@ process mergeBam {
 
     script:
     def cpus = task.cpus
-    def prefix = prefix.sort().join(':')
+    prefix = prefix.sort().join(':')
     """
     (
       samtools view -H ${bam} | grep -v '@RG';
@@ -224,13 +261,15 @@ process mergeBam {
     """
 }
 
+mergedBams.println()
+return
 
 singleBams
 .mix(mergedBams)
 .map { mergeId, prefix, bam, controlId, mark, fragLen, view ->
   [ mergeId, bam, controlId, mark, fragLen, view].flatten()
 }
-.into { bamsMarkDup }
+.set { bamsMarkDup }
 
 
 process markDup {
@@ -276,7 +315,7 @@ process readCount {
 
 process model {
   when:
-  fragLen == -1
+  !fragLen
 
   input:
   set prefix, file(bam), controlId, mark, fragLen, view from modelBams
@@ -349,7 +388,15 @@ controlBams
 .map { c, t ->
   [t[0], t[1], c[1], t[3], t[4], t[5]]
 }
-.into { bamsNarrowPeakCall; bamsBroadPeakCall }
+.tap { bamsNarrowPeakCall; bamsBroadPeakCall }
+.map { replicateId, bam, control, mark, fragLen, view ->
+  sampleId = replicateId.replaceAll(/${params.replicatePattern}$/,'')
+  [sampleId, bam, control, mark, view]
+}
+.groupTuple(by:[0,3,4], sort: {it.baseName})
+.set {bamsZerone}
+
+def globalFragmentLength = params.fragmentLength ?: defaults.fragmentLength
 
 process narrowPeakCall {
   
@@ -362,14 +409,14 @@ process narrowPeakCall {
   set prefix, file("peakOut/${prefix}*.bdg"), mark, fragLen, val("pileupBedGraphs") into pileupBedGraphFiles, pileupBedGraphFilesPileupSignalTracks, pileupBedGraphFilesFeSignalTracks
   
   script:
-  def extSize = params.shift ? params.fragmentLength : fragLen
-  def shiftSize = params.shift ? Math.round((fragLen - params.fragmentLength) / 2) : 0
+  def extSize = params.shift ? globalFragmentLength : fragLen
+  def shiftSize = params.shift ? Math.round((fragLen - globalFragmentLength) / 2) : 0
   """
   # narrow peaks and preliminary signal tracks
   macs2 callpeak -t ${bam} -c ${control} -n ${prefix} --outdir peakOut \
                  -f BAM -g ${params.genomeSize} -p 1e-2 \
                  --nomodel --shift=${shiftSize} --extsize=${extSize} \
-                 --keep-dup all -B --SPMR
+                 --keep-dup all -B --SPMR --tempdir ${params.tmpDirMACS2}
   """
 }
 
@@ -384,14 +431,14 @@ process narrowPeakCallNoInput {
   set prefix, file("peakOut/${prefix}*.bdg"), mark, fragLen, val("pileupBedGraphs") into pileupBedGraphFilesNoInput, pileupBedGraphFilesPileupSignalTracksNoInput, pileupBedGraphFilesFeSignalTracksNoInput
   
   script:
-  def extSize = params.shift ? params.fragmentLength : fragLen
-  def shiftSize = params.shift ? Math.round((fragLen - params.fragmentLength) / 2) : 0
+  def extSize = params.shift ? globalFragmentLength : fragLen
+  def shiftSize = params.shift ? Math.round((fragLen - globalFragmentLength) / 2) : 0
   """
   # narrow peaks and preliminary signal tracks
   macs2 callpeak -t ${bam} -n ${prefix} --outdir peakOut \
                  -f BAM -g ${params.genomeSize} -p 1e-2 \
                  --nomodel --shift=${shiftSize} --extsize=${extSize} \
-                 --keep-dup all -B --SPMR
+                 --keep-dup all -B --SPMR --tempdir ${params.tmpDirMACS2}
   """
 }
 
@@ -403,7 +450,7 @@ crossedBams.map{ c, t ->
   def count = treat < control ? treat : control
   [s[0], s[1], s[2], s[3], count/1000000, s[4]]
 }
-.into{ pileupBedGraphFilesPvalSignalTracks }
+.set{ pileupBedGraphFilesPvalSignalTracks }
 
 process broadPeakCall {
   
@@ -416,14 +463,14 @@ process broadPeakCall {
   set prefix, file("peakOut/${prefix}_peaks.gappedPeak"), mark, fragLen, val("gappedPeak") into gappedPeakFiles
 
   script:
-  def extSize = params.shift ? params.fragmentLength : fragLen
-  def shiftSize = params.shift ? Math.round((fragLen - params.fragmentLength) / 2) : 0
+  def extSize = params.shift ? globalFragmentLength : fragLen
+  def shiftSize = params.shift ? Math.round((fragLen - globalFragmentLength) / 2) : 0
   """
   # Broad and Gapped Peaks
   macs2 callpeak -t ${bam} -c ${control} -n ${prefix} --outdir peakOut \
                  -f BAM -g ${params.genomeSize} -p 1e-2 --broad \
                  --nomodel --shift=${shiftSize} --extsize=${extSize} \
-                 --keep-dup all
+                 --keep-dup all --tempdir ${params.tmpDirMACS2}
   """
 }
 
@@ -438,14 +485,14 @@ process broadPeakCallNoInput {
   set prefix, file("peakOut/${prefix}_peaks.gappedPeak"), mark, fragLen, val("gappedPeak") into gappedPeakFilesNoInput
 
   script:
-  def extSize = params.shift ? params.fragmentLength : fragLen
-  def shiftSize = params.shift ? Math.round((fragLen - params.fragmentLength) / 2) : 0
+  def extSize = params.shift ? globalFragmentLength : fragLen
+  def shiftSize = params.shift ? Math.round((fragLen - globalFragmentLength) / 2) : 0
   """
   # Broad and Gapped Peaks
   macs2 callpeak -t ${bam} -n ${prefix} --outdir peakOut \
                  -f BAM -g ${params.genomeSize} -p 1e-2 --broad \
                  --nomodel --shift=${shiftSize} --extsize=${extSize} \
-                 --keep-dup all
+                 --keep-dup all --tempdir ${params.tmpDirMACS2}
   """
 }
 
@@ -551,9 +598,29 @@ process pvalSignalTracks {
   """
 }
 
+process zerone {
+
+  input:
+  set prefix, file(bam), file(control), mark, view from bamsZerone
+
+  output:
+  set prefix, file("${prefix}_zerone.01"), mark, val("zeroneMatrix") into zeroneMatrixFiles
+  set prefix, file("${prefix}_zerone.bed"), mark, val("zeroneBed") into zeroneBedFiles
+  set prefix, file("${prefix}_zerone_merged.bed"), mark, val("zeroneMergedBed") into zeroneMergedBedFiles
+
+  script:
+  def awkScaleMergedBed = '$0~/^#/ || $NF=$NF*1000'
+  def awkMatrix2Bed = '$0~/^#/ || $0=$1 OFS $2 OFS $3 OFS $NF*1000'
+  """
+  zerone -c ${params.zeroneMinConfidence} -0 ${control.join(",")} -1 ${bam.join(",")} > ${prefix}_zerone.01
+  awk -F"\\t" '${awkMatrix2Bed}' OFS="\\t" ${prefix}_zerone.01 > ${prefix}_zerone.bed
+  zerone -c ${params.zeroneMinConfidence} -l -0 ${control.join(",")} -1 ${bam.join(",")} | awk -F"\\t" '${awkScaleMergedBed}' OFS="\\t" > ${prefix}_zerone_merged.bed
+  """
+}
+
 process NRF {
   input:
-  set prefix, file(bam), controlId, mark, view from bams4NRF
+  set prefix, file(bam), controlId, mark, fragLen, view from bams4NRF
 
   output:
   set prefix, stdout into NRFBams
@@ -614,13 +681,38 @@ metrics.cross(
   .map {
     it + [ '-', '-' ]
   }
+).mix(
+  zeroneMatrixFiles.mix(zeroneBedFiles).mix(zeroneMergedBedFiles)
+  .map { prefix, path, mark, view ->
+    [prefix, path, mark, '-', view, '-', '-']
+  }
 )
 .collectFile(name: pdb.name, storeDir: pdb.parent, newLine: true) { prefix, path, mark, fragLen, view, nrf, frip ->
     [ prefix, path, mark, fragLen, view, nrf, frip ].join("\t")
 }
-.subscribe {
+
+
+workflow.onComplete {
     log.info ""
     log.info "-----------------------"
     log.info "Pipeline run completed."
     log.info "-----------------------"
 }
+
+/*
+ * Given a string path resolve it against the index file location.
+ * Params: 
+ * - str: a string value represting the file path to be resolved
+ * - index: path location against which relative paths need to be resolved 
+ */
+def resolveFile( str, index ) {
+  if( str.startsWith('/') || str =~ /^[\w\d]*:\// ) {
+    return file(str)
+  }
+  else if( index instanceof Path ) {
+    return index.parent.resolve(str)
+  }
+  else {
+    return file(str) 
+  }
+} 

@@ -4,7 +4,7 @@
 :macs2-outfiles: https://github.com/taoliu/MACS#output-files
 :pvalue: pass:q[[red]#___-log_10(P)___#]
 :circle-shield: https://circleci.com/gh/guigolab/chip-nf.svg?style=shield
-:nf-shield: https://img.shields.io/badge/nextflow-%E2%89%A50.17.0-blue.svg
+:nf-shield: https://img.shields.io/badge/nextflow-%E2%89%A50.23.1-blue.svg
 
 image:{nf-shield}["Nextflow", link="https://nextflow.io", window="_blank"]
 image:{circle-shield}["CircleCI status", link="https://circleci.com/gh/guigolab/chip-nf", window="_blank"]

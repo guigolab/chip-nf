@@ -8,8 +8,8 @@ machine:
     
 test:
   pre:
-    - docker pull guigolab/chip-nf@sha256:c08d9c4653e4e8ea95d03ef1668b1c222dea0d5b033f2afd4afbc0e9bb558434
-    - curl -fsSL get.nextflow.io | bash 
+    - docker pull guigolab/chip-nf@sha256:f912436e8791a9d1f9cadf76099f760151435a43d7873712ee692cb2b0f8947e
+    - curl -fsSL get.nextflow.io | bash && mv nextflow $HOME/bin
   override:
-    - ./nextflow run .
-    - bash -x validate-ci.sh
+    - ./ci run -profile circleci && ./ci validate
+    
