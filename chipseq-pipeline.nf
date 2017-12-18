@@ -261,9 +261,6 @@ process mergeBam {
     """
 }
 
-mergedBams.println()
-return
-
 singleBams
 .mix(mergedBams)
 .map { mergeId, prefix, bam, controlId, mark, fragLen, view ->
