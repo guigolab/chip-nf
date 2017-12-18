@@ -391,6 +391,10 @@ controlBams
   [sampleId, bam, control, mark, view]
 }
 .groupTuple(by:[0,3,4], sort: {it.baseName})
+.map{ 
+  it[2] = it[2].unique()
+  it
+}
 .set {bamsZerone}
 
 def globalFragmentLength = params.fragmentLength ?: defaults.fragmentLength
