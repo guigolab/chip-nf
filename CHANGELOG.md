@@ -1,5 +1,10 @@
 # ChIP-nf Changelog
 
+## Version 0.2.1
+
+- Fix duplicate input file names in zerone - close #5
+- Remove debugging code making release 0.2.0 invalid - #4
+
 ## Version 0.2.0
 
 - Update groupTuple for merging and fix input sorting for Zerone - resolves #3
