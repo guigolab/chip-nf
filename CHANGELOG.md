@@ -1,5 +1,10 @@
 # ChIP-nf Changelog
 
+## Version 0.2.2
+
+- Only specify -p option in model when cpus > 1 - fix #6
+- Move to Travis CI
+
 ## Version 0.2.1
 
 - Fix duplicate input file names in zerone - close #5
