@@ -327,7 +327,7 @@ process model {
                               -rf \
                               -out=${prefix}.params.out \
                               -savp=${prefix}.pdf \
-                              -p=${cpus}
+                              ${ cpus > 1 ? "-p=${cpus}" : '' }
   """
 }
 
