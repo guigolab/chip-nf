@@ -10,9 +10,8 @@ make_changelog() {
     tail -n+2 $CHANGELOG_FILE
 }
 
-REF=$1
-VER=${REF/#v/}
-LOG=$(git log --format=format:"- %s" --grep 'ci skip' --grep 'skip ci' --grep "$REF" --grep 'changelog' --invert-grep $(git describe --abbrev=0 $REF^1)...$REF)
+VER=$1
+LOG=$(git log --format=format:"- %s" --grep 'ci skip' --grep 'skip ci' --invert-grep $(git describe --abbrev=0)...)
 
 NEW_RELEASE=$(cat <<-CHANGELOG
 # ChIP-nf Changelog
