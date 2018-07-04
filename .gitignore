@@ -1,5 +1,7 @@
 .nextflow*
 *.db
+*.log
 trace.txt*
 work
 .DS_Store
+validate-ci
