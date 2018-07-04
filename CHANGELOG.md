@@ -1,5 +1,10 @@
 # ChIP-nf Changelog
 
+## Version 0.2.3
+
+- Fix docker configuration and add comments to nextflow.config
+- Update md5 checksums for zerone output files when only one control for all replicates is used
+
 ## Version 0.2.2
 
 - Only specify -p option in model when cpus > 1 - fix #6
