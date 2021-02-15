@@ -13,8 +13,6 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
-    env:
-      IMAGE_HASH: f912436e8791a9d1f9cadf76099f760151435a43d7873712ee692cb2b0f8947e
     steps:
     - uses: actions/checkout@v2
     - name: Set up JDK 1.8
@@ -24,10 +22,6 @@ jobs:
     - name: Set up Nextflow
       run: |
         curl -fsSL get.nextflow.io | bash -e
-
-    - name: Fetch Docker image
-      run: |
-        docker pull ${{ github.repository }}@sha256:$IMAGE_HASH
     - name: Run pipeline
       run: |
         .github/workflows/ci.sh run -with-docker

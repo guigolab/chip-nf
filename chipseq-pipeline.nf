@@ -224,7 +224,7 @@ process mapping {
                   - \
   | samtools sort -@ ${cpus} \
                   - \
-                  ${prefix}_primary
+                  -o ${prefix}_primary.bam
   """
 }
 // Merge or rename bam
