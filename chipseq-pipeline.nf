@@ -51,7 +51,7 @@ if (params.help) {
     log.info '    --index TSV_FILE                    Tab separted file containing information about the data.'
     log.info '    --genome GENOME_FILE                Reference genome file.'
     log.info '    --genome-index GENOME_INDEX_FILE    Reference genome index file.'
-    log.info '    --genome-size GENOME_SIZE           Reference genome size for MACS2 callpeaks. Must be one of' 
+    log.info '    --genome-size GENOME_SIZE           Reference genome size for MACS2 callpeaks. Must be one of'
     log.info "                                        MACS2 precomputed sizes: hs, mm, dm, ce. (Default: '${defaults.genomeSize}')"
     log.info "    --db-file FILE                      Output file where to store results information (Default: '${defaults.dbFile}')"
     log.info "    --replicate-pattern PATTERN         Glob pattern used to match replicates (Default: '${defaults.replicatePattern}')."
@@ -132,7 +132,7 @@ fastqs = Channel
   def fragLen = params.fragmentLength
   if ( params.shift || !fragLen ) {
     fragLen = list[5] as Integer
-  } 
+  }
   def message = '[INFO] '
   if ( params.shift ) {
       message += "Using global fragment length `${params.fragmentLength ?: defaults.fragmentLength}` and compute shift size by "
@@ -250,7 +250,7 @@ process mergeBam {
     """
     (
       samtools view -H ${bam} | grep -v '@RG';
-      for f in ${bam}; do 
+      for f in ${bam}; do
         samtools view -H \$f | grep '@RG';
       done
     ) > header.txt && \
@@ -270,7 +270,7 @@ singleBams
 
 
 process markDup {
-  
+
   input:
   set prefix, file(bam), controlId, mark, fragLen, view from bamsMarkDup
 
@@ -335,18 +335,17 @@ originalBams.cross(bamsReads)
 .map { bams, reads ->
   bams + reads[-1..-1]
 }.mix(modelParams)
-.groupBy()
-.flatMap()
+.groupTuple()
 .map { it ->
-  switch (it.value.size()) {
+  switch (it[1].size()) {
     case 1:
-      it.value[0]
+      it.flatten()
       break
     case 2:
-      def bams = it.value.find { it[1] =~ /bam/ }
-      def paramFile = it.value.find { it[1] =~ /params/ }[1]
+      def bams = it[1].find { it =~ /bam/ }
+      def paramFile = it[1].find { it =~ /params/ }
       def fragLen = paramFile.text.split()[2].split(',')[0] as Integer
-      bams[0..-4] + [fragLen] + bams[-2..-1]
+      [it[0], bams] + it[2..-4].flatten() + [fragLen] + it[-2..-1].flatten()
       break
   }
 }.tap{ allBams }
@@ -381,7 +380,7 @@ controlBams
   it[2] != '-'
 }
 .cross(inputBams) { it[2] }
-.tap { crossedBams } 
+.tap { crossedBams }
 .map { c, t ->
   [t[0], t[1], c[1], t[3], t[4], t[5]]
 }
@@ -391,7 +390,7 @@ controlBams
   [sampleId, bam, control, mark, view]
 }
 .groupTuple(by:[0,3,4], sort: {it.baseName})
-.map{ 
+.map{
   it[2] = it[2].unique()
   it
 }
@@ -400,7 +399,7 @@ controlBams
 def globalFragmentLength = params.fragmentLength ?: defaults.fragmentLength
 
 process narrowPeakCall {
-  
+
   input:
   file chromSizes from chromSizesNarrowPeakCall.val
   set prefix, file(bam), file(control), mark, fragLen, view from bamsNarrowPeakCall
@@ -408,7 +407,7 @@ process narrowPeakCall {
   output:
   set prefix, file("peakOut/${prefix}_peaks.narrowPeak"), mark, fragLen, val("narrowPeak") into narrowPeakFiles, narrowPeakFiles4FRiP
   set prefix, file("peakOut/${prefix}*.bdg"), mark, fragLen, val("pileupBedGraphs") into pileupBedGraphFiles, pileupBedGraphFilesPileupSignalTracks, pileupBedGraphFilesFeSignalTracks
-  
+
   script:
   def extSize = params.shift ? globalFragmentLength : fragLen
   def shiftSize = params.shift ? Math.round((fragLen - globalFragmentLength) / 2) : 0
@@ -422,7 +421,7 @@ process narrowPeakCall {
 }
 
 process narrowPeakCallNoInput {
-  
+
   input:
   file chromSizes from chromSizesNarrowPeakCallNoInput.val
   set prefix, file(bam), mark, fragLen, view from bamsNarrowPeakCallNoInput.mix(controlBams4Signal.map { [ it[0], it[1], it[3], it[4], it[5] ] })
@@ -430,7 +429,7 @@ process narrowPeakCallNoInput {
   output:
   set prefix, file("peakOut/${prefix}_peaks.narrowPeak"), mark, fragLen, val("narrowPeak") into narrowPeakFilesNoInput, narrowPeakFiles4FRiPNoInput
   set prefix, file("peakOut/${prefix}*.bdg"), mark, fragLen, val("pileupBedGraphs") into pileupBedGraphFilesNoInput, pileupBedGraphFilesPileupSignalTracksNoInput, pileupBedGraphFilesFeSignalTracksNoInput
-  
+
   script:
   def extSize = params.shift ? globalFragmentLength : fragLen
   def shiftSize = params.shift ? Math.round((fragLen - globalFragmentLength) / 2) : 0
@@ -454,7 +453,7 @@ crossedBams.map{ c, t ->
 .set{ pileupBedGraphFilesPvalSignalTracks }
 
 process broadPeakCall {
-  
+
   input:
   file chromSizes from chromSizesBroadPeakCall.val
   set prefix, file(bam), file(control), mark, fragLen, view from bamsBroadPeakCall
@@ -476,7 +475,7 @@ process broadPeakCall {
 }
 
 process broadPeakCallNoInput {
-  
+
   input:
   file chromSizes from chromSizesBroadPeakCallNoInput.val
   set prefix, file(bam), mark, fragLen, view from bamsBroadPeakCallNoInput
@@ -507,7 +506,7 @@ narrowPeakFiles
 .into{ allPeakFiles; peakCallResults; peakCallResults4FRiP }
 
 process rescalePeaks {
- 
+
   when:
   params.rescale
 
@@ -536,7 +535,7 @@ process pileupSignalTracks {
 
   output:
   set prefix, file("${prefix}.pileup_signal.bw"), mark, fragLen, val("pileupSignal") into pileupSignalFiles, pileupSignalFilesResults
-  
+
   script:
   def treat = bedGraphs instanceof nextflow.util.BlankSeparatedList ? bedGraphs.find { it =~ /treat/ } : bedGraphs
   """
@@ -548,7 +547,7 @@ process pileupSignalTracks {
 }
 
 process feSignalTracks {
-  
+
   when:
   bedGraphs instanceof nextflow.util.BlankSeparatedList && mark != 'input'
 
@@ -581,10 +580,10 @@ process pvalSignalTracks {
   input:
   file chromSizes from chromSizesPvalSignalTracks.val
   set prefix, file(bedGraphs), mark, fragLen, sval, view from pileupBedGraphFilesPvalSignalTracks
- 
+
   output:
   set prefix, file("${prefix}.pval_signal.bw"), mark, fragLen, val("pvalueSignal") into pvalSignalFiles
-  
+
   script:
   def treat = bedGraphs.find { it =~ /treat/ }
   def control = bedGraphs.find { it =~ /control/ }
@@ -629,7 +628,7 @@ process NRF {
   script:
   def cpus = task.cpus
   """
-  samtools view -@${cpus} ${bam} | NRF.awk 
+  samtools view -@${cpus} ${bam} | NRF.awk
   """
 }
 
@@ -664,7 +663,7 @@ process FRiP {
 
 metrics = NRFBams.cross(FRiPBams)
 .map { nrf, frip ->
- [nrf[0], nrf[1], frip[1]] 
+ [nrf[0], nrf[1], frip[1]]
 }
 
 metrics.cross(
@@ -702,9 +701,9 @@ workflow.onComplete {
 
 /*
  * Given a string path resolve it against the index file location.
- * Params: 
+ * Params:
  * - str: a string value represting the file path to be resolved
- * - index: path location against which relative paths need to be resolved 
+ * - index: path location against which relative paths need to be resolved
  */
 def resolveFile( str, index ) {
   if( str.startsWith('/') || str =~ /^[\w\d]*:\// ) {
@@ -714,6 +713,6 @@ def resolveFile( str, index ) {
     return index.parent.resolve(str)
   }
   else {
-    return file(str) 
+    return file(str)
   }
-} 
+}
