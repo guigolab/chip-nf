@@ -17,7 +17,7 @@ case "$1" in
   run)
     shift
     echo "Running test pipeline..." >&2
-    ./nextflow run . -resume $@
+    ./nextflow run . $@
     ;;
   validate)
     shift
