@@ -3,11 +3,10 @@ def defaults = [
   shift: false,
   mismatches: 2,
   multimaps: 10,
+  mappingMode: 'sensitive',
   rescale: false,
   genomeSize: 'hs',
   fragmentLength: 200,
-  minMatchedBases: 0.8,
-  qualityThreshold: 26,
   zeroneMinConfidence: 0,
   removeDuplicates: false,
   replicatePattern: '.[12]',
@@ -28,9 +27,8 @@ params.rescale = defaults.rescale
 params.multimaps = defaults.multimaps
 params.genomeSize = defaults.genomeSize
 params.mismatches = defaults.mismatches
+params.mappingMode = defaults.mappingMode
 params.fragmentLength = 0
-params.minMatchedBases = defaults.minMatchedBases
-params.qualityThreshold = defaults.qualityThreshold
 params.removeDuplicates = defaults.removeDuplicates
 params.replicatePattern = defaults.replicatePattern
 params.zeroneMinConfidence  = defaults.zeroneMinConfidence
@@ -57,8 +55,6 @@ if (params.help) {
     log.info "    --replicate-pattern PATTERN         Glob pattern used to match replicates (Default: '${defaults.replicatePattern}')."
     log.info "    --mismatches MISMATCHES             Sets the maximum number/percentage of mismatches allowed for a read (Default: '${defaults.mismatches}').  "
     log.info "    --multimaps MULTIMAPS               Sets the maximum number of mappings allowed for a read (Default: '${defaults.multimaps}')."
-    log.info "    --min-matched-bases BASES           Sets the minimum number/percentage of bases that have to match with the reference (Default: '${defaults.minMatchedBases}')."
-    log.info "    --quality-threshold THRESHOLD       Sets the sequence quality threshold for a base to be considered as low-quality (Default: '${defaults.qualityThreshold}')."
     log.info "    --fragment-length LENGTH            Sets the fragment length globally for all samples (Default: '${defaults.fragmentLength}')."
     log.info "    --zerone-min-confidence CONFIDENCE  Make Zerone print targets with confidence higher than CONFIDENCE (Default: ${defaults.zeroneMinConfidence})."
     log.info "    --remove-duplicates                 Remove duplicate alignments instead of just flagging them (Default: '${defaults.removeDuplicates}')."
@@ -108,8 +104,6 @@ log.info '------------------'
 log.info ''
 log.info "Max Mismatches         : ${params.mismatches}"
 log.info "Max Multimaps          : ${params.multimaps}"
-log.info "Minimum Matched Bases  : ${params.minMatchedBases}"
-log.info "Low Quality Threshold  : ${params.qualityThreshold}"
 log.info ''
 log.info "Zerone parameters"
 log.info '-----------------'
@@ -145,8 +139,7 @@ fastqs = Channel
     message += "estimated fragment length for ${mergeId}"
   }
   log.info message
-  def quality = fastq(path).qualityScore()
-  [ mergeId, id, path, controlId, mark, fragLen, quality ]
+  [ mergeId, id, path, controlId, mark, fragLen ]
 }
 
 if (!params.genomeIndex) {
@@ -164,8 +157,7 @@ if (!params.genomeIndex) {
     sed 's/ .*//' ${genome} > genome_processed.fa
     gem-indexer -i genome_processed.fa \
                 -o genome_index \
-                -T ${task.cpus} \
-                -m ${task.memory?.toBytes() ?: 'unlimited'} \
+                -t ${task.cpus} \
     && rm genome_processed.fa
     """
   }
@@ -190,7 +182,7 @@ process fastaIndex {
 process mapping {
   input:
   file index from GenomeIdx.val
-  set mergeId, prefix, file(fastq), controlId, mark, fragLen, quality from fastqs
+  set mergeId, prefix, file(fastq), controlId, mark, fragLen from fastqs
 
   output:
   set mergeId, prefix, file("${prefix}_primary.bam"), controlId, mark, fragLen, val('Alignments') into bams
@@ -198,26 +190,16 @@ process mapping {
   script:
   def cpus = task.cpus
   def memory = task.memory
-  def readGroup = "ID=${prefix},SM=${mergeId}"
-  def cat = fastq.name.endsWith('.gz') ? 'zcat' : 'cat'
+  def readGroup = "@RG\tID:${prefix}\tSM:${mergeId}"
   def awk_str = 'BEGIN{OFS=FS="\\t"}$0!~/^@/{split(\"1_2_8_32_64_128\",a,\"_\");for(i in a){if(and($2,a[i])>0){$2=xor($2,a[i])}}}{print}'
   """
-  ${cat} ${fastq} \
-  | gem-mapper -I ${index} \
-               -m ${params.mismatches} \
-               -e ${params.mismatches} \
-               --min-matched-bases ${params.minMatchedBases} \
-               -d ${params.multimaps} \
-               -D 0 \
-               --gem-quality-threshold ${params.qualityThreshold} \
-               -q offset-${quality} \
-               -T ${cpus} \
-  | gem-2-sam -T ${cpus} \
-              -I ${index} \
-              -q offset-${quality} \
-              -l \
-              --expect-single-end-reads \
-              --read-group ${readGroup} \
+  gem-mapper -i ${fastq} \
+             -I ${index} \
+             --mapping-mode=${params.mappingMode} \
+             -e ${params.mismatches} \
+             -M ${params.multimaps} \
+             -t ${cpus} \
+             -r '${readGroup}' \
   | awk '${awk_str}' \
   | samtools view -@ ${cpus} \
                   -SbF256 \

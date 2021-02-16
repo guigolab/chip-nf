@@ -74,8 +74,10 @@ RUN curl -fsSL https://github.com/samtools/samtools/releases/download/${SAMTOOLS
     && make
 
 # install GEM
-RUN curl http://barnaserver.com/gemtools/releases/GEMTools-static-i3-1.7.1.tar.gz \
-    | tar xz
+ARG GEM_VER=3.6.1
+RUN curl -fsSL https://github.com/smarco/gem3-mapper/archive/v${GEM_VER}.tar.gz \
+    | tar xz && cd gem3-mapper-${GEM_VER} \
+    && ./configure && make
 
 RUN curl -O http://ppa.launchpad.net/linuxuprising/libpng12/ubuntu/pool/main/libp/libpng/libpng12-0_1.2.54-1ubuntu1.1+1~ppa0~focal_amd64.deb
 
@@ -110,6 +112,7 @@ ENV LANG=en_US.UTF-8 \
     PATH=/opt/R/${R_VER}/bin:$PATH
 
 ARG SAMTOOLS_VER=1.11
+ARG GEM_VER=3.6.1
 
 COPY --from=builder /libpng12-0_1.2.54-1ubuntu1.1+1~ppa0~focal_amd64.deb /
 RUN dpkg -i /libpng12-0_1.2.54-1ubuntu1.1+1~ppa0~focal_amd64.deb && \
@@ -124,6 +127,6 @@ COPY --from=builder /bedGraphToBigWig /usr/local/bin/
 COPY --from=builder /zerone/zerone /usr/local/bin/
 COPY --from=builder /picard.jar /usr/local/bin/
 COPY --from=builder /phantompeakqualtools/run_spp.R /usr/local/bin
-COPY --from=builder /gemtools-1.7.1-i3/bin/gem-* /usr/local/bin/
+COPY --from=builder /gem3-mapper-${GEM_VER}/bin/* /usr/local/bin/
 COPY --from=builder /samtools-${SAMTOOLS_VER}/samtools /usr/local/bin/
 COPY --from=builder /usr/local/bin/macs2 /usr/local/bin/
