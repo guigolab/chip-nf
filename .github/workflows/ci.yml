@@ -24,7 +24,11 @@ jobs:
         curl -fsSL get.nextflow.io | bash -e
     - name: Run pipeline
       run: |
-        .github/workflows/ci.sh run -with-docker
+        .github/workflows/ci.sh run
     - name: Validate pipeline results
-      run: |
-        .github/workflows/ci.sh validate
+      uses: addnab/docker-run-action@v3
+      with:
+        image: guigolab/chip-nf:dev
+        options: -v ${{ github.workspace }}:${{ github.workspace }} -w ${{ github.workspace }}
+        run: |
+          .github/workflows/ci.sh validate
