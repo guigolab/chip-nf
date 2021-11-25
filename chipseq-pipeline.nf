@@ -56,8 +56,7 @@ if (!params.index) {
 // Includes
 include { parseIndexFile; collectResults; printHeader } from './modules/common'
 include { align } from './modules/gem'
-include { mergeBams } from './modules/merge'
-include { processBams } from './modules/bam'
+include { mergeBams; processBams } from './modules/bam'
 include { computeMetrics } from './modules/metrics'
 include { callPeaks as MACS2callPeaks} from './modules/macs'
 include { callPeaks as ZERONEcallPeaks} from './modules/zerone'
