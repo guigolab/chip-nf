@@ -44,6 +44,7 @@ case "$1" in
   cleanup)
     echo "Cleaning up test results..." >&2
     find ${VALIDATE_DIR} -type l -exec rm {} \+
+    find ${VALIDATE_DIR} -name '*.sam' -exec rm {} \+
     find ${VALIDATE_DIR} -type d -empty -exec rmdir {} \+
     ;;
   *)
