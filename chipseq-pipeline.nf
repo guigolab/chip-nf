@@ -444,7 +444,7 @@ process narrowPeakCallNoInput {
 }
 
 crossedBams.map{ c, t ->
-  [t[0], t[4], c[4]]
+  [t[0], t[6], c[6]]
 }.cross(pileupBedGraphFiles)
 .map { r, s ->
   def (treat, control) = r[1..-1] as long[]
