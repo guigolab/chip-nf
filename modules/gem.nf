@@ -6,8 +6,9 @@ process indexing {
     file "genome_index.gem"
 
     script:
+    def cat = genome.name.endsWith('.gz') ? 'zcat' : 'cat'
     """
-    sed 's/ .*//' ${genome} > genome_processed.fa
+    ${cat} ${genome} | sed 's/ .*//' > genome_processed.fa
     gem-indexer -i genome_processed.fa \
                 -o genome_index \
                 -T ${task.cpus} \
